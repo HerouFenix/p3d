@@ -1,0 +1,46 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Project">
+  <TemplateData>
+    <Name>P3D_Template</Name>
+    <Description>&lt;No description available&gt;</Description>
+    <ProjectType>VC</ProjectType>
+    <ProjectSubType>
+    </ProjectSubType>
+    <SortOrder>1000</SortOrder>
+    <CreateNewFolder>true</CreateNewFolder>
+    <DefaultName>P3D_Template</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <LocationField>Enabled</LocationField>
+    <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
+    <Icon>__TemplateIcon.jpg</Icon>
+  </TemplateData>
+  <TemplateContent>
+    <Project TargetFileName="P3D_Template2.vcxproj" File="P3D_Template2.vcxproj" ReplaceParameters="true">
+      <ProjectItem ReplaceParameters="false" TargetFileName="$projectname$.vcxproj.filters">P3D_Template2.vcxproj.filters</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="boundingBox.cpp">boundingBox.cpp</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="main.cpp">main.cpp</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="sampler.cpp">sampler.cpp</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="scene.cpp">scene.cpp</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="vector.cpp">vector.cpp</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="boundingBox.h">boundingBox.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="camera.h">camera.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="color.h">color.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="grid.h">grid.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="maths.h">maths.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="ray.h">ray.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="sampler.h">sampler.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="scene.h">scene.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="vector.h">vector.h</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="back.jpg">SKYBOX\back.jpg</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="bottom.jpg">SKYBOX\bottom.jpg</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="front.jpg">SKYBOX\front.jpg</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="left.jpg">SKYBOX\left.jpg</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="right.jpg">SKYBOX\right.jpg</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="top.jpg">SKYBOX\top.jpg</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="balls_box.p3f">P3D_SCENES\balls_box.p3f</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="balls_high.p3f">P3D_SCENES\balls_high.p3f</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="balls_low.p3f">P3D_SCENES\balls_low.p3f</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="balls_medium.p3f">P3D_SCENES\balls_medium.p3f</ProjectItem>
+      <ProjectItem ReplaceParameters="false" TargetFileName="Dependencies.exe">Dependencies.exe</ProjectItem>
+    </Project>
+  </TemplateContent>
+</VSTemplate>
