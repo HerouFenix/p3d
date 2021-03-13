@@ -81,137 +81,105 @@ int WindowHandle = 0;
 
 Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
 {
+	Color color = Color(0.0f, 0.0f, 0.0f);
+
 	Object* obj = NULL;
-	Object* min_obj = NULL;
-	Vector hit_p; // Point representing the interception of the ray and the closest object
+	Object* closest_obj = NULL;
+	float cur_dist, min_dist = FLT_MAX;
 
-	float t = FLT_MAX;
-	float min_t = FLT_MAX;
+	Vector hit_point;
 
-	Color color = Color();
-
-	//iterate through all objects in scene to check for interception
+	//Intersect Ray with all objects and find the closest hit point (if it exists)
 	for (int i = 0; i < scene->getNumObjects(); i++) {
-
 		obj = scene->getObject(i);
 
-		if (obj->intercepts(ray, t) && (t < min_t)) {
-			min_obj = obj;
-			min_t = t;
-			hit_p = ray.origin + ray.direction*min_t;
+		if (obj->intercepts(ray, cur_dist) && (cur_dist < min_dist)) {
+			closest_obj = obj;
+			min_dist = cur_dist;
+			hit_point = ray.origin + ray.direction * min_dist;
 		}
 	}
 
-	// If no intersects
-	if (min_obj == NULL) {
+	// If no intersection, return BACKGROUND
+	if (closest_obj == NULL) {
 		if (scene->GetSkyBoxFlg())
 			return scene->GetSkyboxColor(ray);
-		else 
+		else
 			return scene->GetBackgroundColor();
 	}
-	else {
-		// Compute the normal at the hit point
-		Vector norm = min_obj->getNormal(hit_p);
 
-		Light* light = NULL;
+	// Compute normal at the hit point
+	Vector normal = closest_obj->getNormal(hit_point);
 
-		Material* mat = min_obj->GetMaterial();
-		Color diff = Color();
-		Color spec = Color();
+	Light* light = NULL;
+	Material* material = closest_obj->GetMaterial();
+	Color diff = Color();
+	Color spec = Color();
 
-		for (int i = 0; i < scene->getNumLights(); i++) {
+	// For each light source
+	for (int i = 0; i < scene->getNumLights(); i++) {
+		light = scene->getLight(i);
 
-			light = scene->getLight(i);
+		// Get L - the unit vector from the hit point to the light source
+		Vector L = (light->position - hit_point).normalize();
 
-			// Unit light vector from hit point to light source
-			Vector l_dir = (light->position - hit_p).normalize();
+		// If dot product of L and the normal is bigger than zero
 
-			if (l_dir * norm > 0) {
-				// Check if point is in shadow
-				bool in_shadow = false;
-				Ray feeler = Ray(hit_p, l_dir);
-				for (int j = 0; j < scene->getNumObjects(); j++) {
+		if (L * normal > 0) {
+			// Check if point is NOT in shadow
+			bool in_shadow = false;
 
-					obj = scene->getObject(j);
-
-					if (obj->intercepts(feeler, t)) {
-						in_shadow = true; //is in shadow
-						break;
-					}
-				}
-
-				// If point not in shadow
-				if (!in_shadow) {
-					Vector blinn = ((l_dir + (ray.direction * -1)) / 2).normalize();
-					diff = (light->color * mat->GetDiffColor()) * (max(0, norm * l_dir));
-					spec = (light->color * mat->GetSpecColor()) * pow(max(0, blinn * norm), mat->GetShine());
-				
-					color = diff + spec;
+			Ray feeler = Ray(hit_point, L); // Ray from our hit point to the light source
+			//	Iterate through all objects to see if any stand between the hit point and the light source
+			for (int j = 0; j < scene->getNumObjects(); j++) {
+				obj = scene->getObject(j);
+				if (obj->intercepts(feeler, cur_dist)) {
+					in_shadow = true;
+					break;
 				}
 			}
-		}
-	
-		if (depth >= MAX_DEPTH)
-			return color;
 
-		// Reflection
-		Color reflCol = Color();
-		if (mat->GetReflection() > 0) {
-			// Calculate ray in the reflected directio
-			
-			Vector rdir = norm * ((ray.direction * -1) * norm) * 2 + ray.direction; 
-			Ray rray = Ray(hit_p, rdir);
+			if (!in_shadow) {
+				// color = diffuse color + specular color
+				diff = (light->color * material->GetDiffColor()) * (max(0, normal * L));
 
-			reflCol = rayTracing(rray, depth - 1, ior_1);
-		}
+				Vector blinn = ((L + (ray.direction * -1)) / 2).normalize(); // TODO: TRY TO UNDERSTAND THIS PART
+				spec = (light->color * material->GetSpecColor()) * pow(max(0, blinn * normal), material->GetShine());
 
-		// Refraction
-		Color refrCol = Color();
-
-		float Kr;
-		Vector v = ray.direction * -1; //view
-		Vector vn = (norm * (v * norm)); //viewnormal
-		Vector vt = vn - v; //viewtangent
-
-		float Rs = 1, Rp = 1;
-
-		if (mat->GetTransmittance() == 0) {
-			Kr = mat->GetSpecular();
-		}
-		else {
-			float n = ior_1 / mat->GetRefrIndex();
-
-			float cosOi = vn.length();
-			float sinOt = (n)*vt.length(), cosOt;
-			float insqrt = 1 - pow(sinOt, 2);
-
-			if (insqrt >= 0) {
-				cosOt = sqrt(insqrt);
-
-				//Refraction Secondary Rays
-				Vector refractDir = (vt.normalize() * sinOt + norm * (-cosOt)).normalize();
-
-				Ray refractedRay = Ray(hit_p, refractDir);
-
-				float newior = mat->GetRefrIndex();
-
-				refrCol = rayTracing(refractedRay, depth - 1, newior);
-
-				//Frenel Equations
-				Rs = pow(fabs((ior_1 * cosOi - newior * cosOt) / (ior_1 * cosOi + newior * cosOt)), 2); //s-polarized (perpendicular)
-				Rp = pow(fabs((ior_1 * cosOt - newior * cosOi) / (ior_1 * cosOt + newior * cosOi)), 2); //p-polarized (parallel)
+				//color = diff * material->GetDiffuse() + spec * material->GetSpecular();
+				color = diff + spec;
 			}
 		}
-
-		//ratio of reflected ligth (mirror reflection attenuation)
-		Kr = 1 / 2 * (Rs + Rp);
-
-		color += reflCol * Kr + refrCol * (1-Kr);
-
-		return color.clamp();
 	}
 
-	return Color(0.0f, 0.0f, 0.0f);
+	// If depth >= max depth return color
+	if (depth >= MAX_DEPTH) {
+		return color;
+	}
+
+
+	// If object is reflective
+	if (material->GetReflection() > 0) {
+		//	compute ray in the reflected direction
+
+		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1)
+
+		//	reduce rColor by the specular reflection coefficient and add to color
+	}
+
+
+	// If object is transparent
+	if (material->GetTransmittance() > 0) {
+		//	compute ray in the refracted direction
+
+
+		//	compute refracted color using recursion (tColor = rayTracing(refracted ray direction, depth+1)
+
+		//	reduce tColor by the transmittance coefficient and add to color
+
+	}
+
+	return color;
 }
 
 /////////////////////////////////////////////////////////////////////// ERRORS
@@ -423,12 +391,11 @@ void renderScene()
 			pixel.x = x + 0.5f;
 			pixel.y = y + 0.5f;
 
-			//YOUR 2 FUNTIONS:
+			/*YOUR 2 FUNTIONS: */
 			Ray ray = scene->GetCamera()->PrimaryRay(pixel);
 			color = rayTracing(ray, 1, 1.0).clamp();
 
-
-			color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
+			//color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
 
 			img_Data[counter++] = u8fromfloat((float)color.r());
 			img_Data[counter++] = u8fromfloat((float)color.g());
@@ -706,7 +673,7 @@ void init_scene(void)
 	}
 	else {
 		printf("Creating a Random Scene.\n\n");
-		//scene->create_random_scene();
+		scene->create_random_scene();
 	}
 	RES_X = scene->GetCamera()->GetResX();
 	RES_Y = scene->GetCamera()->GetResY();

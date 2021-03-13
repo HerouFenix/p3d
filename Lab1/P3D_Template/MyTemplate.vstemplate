@@ -14,8 +14,8 @@
     <Icon>__TemplateIcon.jpg</Icon>
   </TemplateData>
   <TemplateContent>
-    <Project TargetFileName="P3D_Template2.vcxproj" File="P3D_Template2.vcxproj" ReplaceParameters="true">
-      <ProjectItem ReplaceParameters="false" TargetFileName="$projectname$.vcxproj.filters">P3D_Template2.vcxproj.filters</ProjectItem>
+    <Project TargetFileName="P3D_Template4.vcxproj" File="P3D_Template4.vcxproj" ReplaceParameters="true">
+      <ProjectItem ReplaceParameters="false" TargetFileName="$projectname$.vcxproj.filters">P3D_Template4.vcxproj.filters</ProjectItem>
       <ProjectItem ReplaceParameters="false" TargetFileName="boundingBox.cpp">boundingBox.cpp</ProjectItem>
       <ProjectItem ReplaceParameters="false" TargetFileName="main.cpp">main.cpp</ProjectItem>
       <ProjectItem ReplaceParameters="false" TargetFileName="sampler.cpp">sampler.cpp</ProjectItem>

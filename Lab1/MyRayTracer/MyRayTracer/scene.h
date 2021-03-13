@@ -91,7 +91,8 @@ class Plane : public Object
 {
 protected:
   Vector	 PN;
-  float 	 D;
+  float 	 D; // <- what's D?
+  Vector	 P; // Added this in order to represent the plane via a point and normal
 
 public:
 		 Plane		(Vector& PNc, float Dc);

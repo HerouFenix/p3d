@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <IL/il.h>
+#include <time.h>
 using namespace std;
 
 #include "camera.h"
