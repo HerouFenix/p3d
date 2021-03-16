@@ -97,20 +97,15 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 
 bool Plane::intercepts(Ray& r, float& t)
 {
-	float numer = (r.origin - P) * PN;
-	float divid = PN * r.direction;
-
-	if (fabs(divid) < 0.0001) {
-		return false;
+	float denom = PN * r.direction;
+	if (fabs(denom) > 0.0001f) {
+		t = ((P - r.origin) * PN)/denom;
+		if (t >= 0) {
+			return true;
+		}
 	}
 
-	t = -(numer / divid);
-
-	if (t <= 0) {
-		return false;
-	}
-
-	return (true);
+	return false;
 }
 
 Vector Plane::getNormal(Vector point)
@@ -129,7 +124,7 @@ bool Sphere::intercepts(Ray& r, float& t)
 
 	float discriminant = b * b - 4 * a * c;
 
-	if (discriminant < 0) {
+	if (discriminant <= 0) {
 		return false;
 	}
 	else {

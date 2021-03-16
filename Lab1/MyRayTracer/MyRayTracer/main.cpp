@@ -143,14 +143,14 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 			// If point not in shadow
 			if (!in_shadow) {
-				Vector blinn = ((L + (ray.direction * -1)) / 2).normalize();
+				Vector blinn = ((L + (ray.direction * -1))).normalize();
 
 				Color diff = (light->color * material->GetDiffColor()) * (max(0, normal * L));
 				Color spec = (light->color * material->GetSpecColor()) * pow(max(0, blinn * normal), material->GetShine());
 
 				//color = diffuse color + specular color
 				//color = diff + spec;
-				color = diff * material->GetDiffuse() + spec * material->GetSpecular();
+				color += diff * material->GetDiffuse() + spec * material->GetSpecular();
 			}
 		}
 
@@ -158,7 +158,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	// If depth >= max depth return color
 	if (depth >= MAX_DEPTH) {
-		return color;
+		return color.clamp();
 	}
 
 
@@ -168,13 +168,21 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	// If object is reflective
 	if (material->GetReflection() > 0) {
 		//	compute ray in the reflected direction
+		float r = ray.direction * normal;
+		Vector rDir;
+		rDir.x = 2 * r * normal.x;
+		rDir.y = 2 * r * normal.y;
+		rDir.z = 2 * r * normal.z;
+		rDir = rDir - ray.direction;
 
-		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1)
+		Ray rRay = Ray(hit_point, rDir);
+
+		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1))
+		rColor = rayTracing(rRay, depth + 1, ior_1);
 
 		//	reduce rColor by the specular reflection coefficient and add to color
-
+		//color += rColor * material->GetSpecular();
 	}
-
 
 	// If object is transparent
 	if (material->GetTransmittance() > 0) {
@@ -187,7 +195,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		// reduce tColor by the transmittance coefficient and add to color
 	}
 
-	return color;
+	return color.clamp();
 }
 
 /////////////////////////////////////////////////////////////////////// ERRORS
