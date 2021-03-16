@@ -87,8 +87,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	Object* closest_obj = NULL;
 	float cur_dist, min_dist = FLT_MAX;
 
-	Vector hit_point;
-
 	//Intersect Ray with all objects and find the closest hit point (if it exists)
 	for (int i = 0; i < scene->getNumObjects(); i++) {
 		obj = scene->getObject(i);
@@ -96,7 +94,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		if (obj->intercepts(ray, cur_dist) && (cur_dist < min_dist)) {
 			closest_obj = obj;
 			min_dist = cur_dist;
-			hit_point = ray.origin + ray.direction * min_dist;
 		}
 	}
 
@@ -108,54 +105,64 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			return scene->GetBackgroundColor();
 	}
 
+	Vector hit_point = ray.origin + ray.direction * min_dist;
+
+	// Hitpoint computation with offset (remove Acne)
+	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * .00001;
+
+
 	// Compute normal at the hit point
-	Vector normal = closest_obj->getNormal(hit_point);
+	Vector normal = closest_obj->getNormal(precise_hit_point).normalize();
 
 	Light* light = NULL;
+	Vector L;
 	Material* material = closest_obj->GetMaterial();
-	Color diff = Color();
-	Color spec = Color();
 
 	// For each light source
 	for (int i = 0; i < scene->getNumLights(); i++) {
 		light = scene->getLight(i);
 
 		// Get L - the unit vector from the hit point to the light source
-		Vector L = (light->position - hit_point).normalize();
+		L = (light->position - precise_hit_point).normalize();
 
 		// If dot product of L and the normal is bigger than zero
-
 		if (L * normal > 0) {
 			// Check if point is NOT in shadow
+			Ray feeler = Ray(precise_hit_point, L); // Ray going from the intersection point pointing to the light
 			bool in_shadow = false;
 
-			Ray feeler = Ray(hit_point, L); // Ray from our hit point to the light source
-			//	Iterate through all objects to see if any stand between the hit point and the light source
+			// Iterate over all objects to see if any are between the intersection point and the light source
 			for (int j = 0; j < scene->getNumObjects(); j++) {
 				obj = scene->getObject(j);
+
 				if (obj->intercepts(feeler, cur_dist)) {
 					in_shadow = true;
 					break;
 				}
 			}
 
+			// If point not in shadow
 			if (!in_shadow) {
-				// color = diffuse color + specular color
-				diff = (light->color * material->GetDiffColor()) * (max(0, normal * L));
+				Vector blinn = ((L + (ray.direction * -1)) / 2).normalize();
 
-				Vector blinn = ((L + (ray.direction * -1)) / 2).normalize(); // TODO: TRY TO UNDERSTAND THIS PART
-				spec = (light->color * material->GetSpecColor()) * pow(max(0, blinn * normal), material->GetShine());
+				Color diff = (light->color * material->GetDiffColor()) * (max(0, normal * L));
+				Color spec = (light->color * material->GetSpecColor()) * pow(max(0, blinn * normal), material->GetShine());
 
-				//color = diff * material->GetDiffuse() + spec * material->GetSpecular();
-				color = diff + spec;
+				//color = diffuse color + specular color
+				//color = diff + spec;
+				color = diff * material->GetDiffuse() + spec * material->GetSpecular();
 			}
 		}
+
 	}
 
 	// If depth >= max depth return color
 	if (depth >= MAX_DEPTH) {
 		return color;
 	}
+
+
+	Color tColor, rColor;
 
 
 	// If object is reflective
@@ -165,6 +172,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1)
 
 		//	reduce rColor by the specular reflection coefficient and add to color
+
 	}
 
 
@@ -175,8 +183,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 		//	compute refracted color using recursion (tColor = rayTracing(refracted ray direction, depth+1)
 
-		//	reduce tColor by the transmittance coefficient and add to color
 
+		// reduce tColor by the transmittance coefficient and add to color
 	}
 
 	return color;
