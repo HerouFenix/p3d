@@ -116,23 +116,37 @@ Vector Plane::getNormal(Vector point)
 
 bool Sphere::intercepts(Ray& r, float& t)
 {
-	// As seen on https://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
-	Vector oc = r.origin - center;
-	float a = r.direction * r.direction;
-	float b = 2.0f * (oc * r.direction);
-	float c = (oc * oc) - radius * radius;
 
-	float discriminant = b * b - 4 * a * c;
+	Vector Rd = r.direction;
 
-	if (discriminant <= 0) {
+	Vector co = (center - r.origin);
+
+	float doc2 = co.x *co.x + co.y * co.y + co.z * co.z;
+
+	float b = co * Rd;
+
+	float c = doc2 - radius * radius;
+
+	if (c > 0) {
+		if (b < 0) {
+			return false;
+		}
+	}
+
+	float discriminant = (b * b - c);
+
+	if (discriminant < 0) {
 		return false;
 	}
+
+	if (c > 0) {
+		t = b - sqrt(discriminant);
+	}
 	else {
-		t = (-b - sqrt(discriminant)) / (2.0f * a);
-		return true;
+		t = b + sqrt(discriminant);
 	}
 
-	return false;
+	return (true);
 }
 
 
