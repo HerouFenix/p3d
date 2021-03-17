@@ -166,28 +166,19 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		return color.clamp();
 	}
 
-	//normal = !inside ? norm : norm * -1;
+
 	float Kr;
 
 	Vector v = ray.direction * -1; //view
 	Vector vn = (normal * (v * normal)); //viewnormal
 	Vector vt = vn - v; //viewtangent
 
-	Color refrCol = Color(), reflCol = Color();
+	Color tColor = Color(), rColor = Color();
 
-	if (material->GetTransmittance() == 0) {
-
-		//opaque material
-		Kr = material->GetSpecular();
-	}
-	else {
+	if(material->GetTransmittance() > 0) {
 		float Rs = 1, Rp = 1;
 
-		//refraction index (snell law)
-		
-		float n = 
-			// !inside ? ior_1 / material->GetRefrIndex() : 
-			ior_1 / 1;
+		float n = ior_1;
 
 		float cosOi = vn.length();
 		float sinOt = (n)*vt.length(), cosOt;
@@ -206,7 +197,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				//!inside ? mat->GetRefrIndex() : 
 				!1; //MAGIC NUMBER
 			//rayTracing(...)
-			refrCol = rayTracing(refractedRay, depth - 1, newior);
+			tColor = rayTracing(refractedRay, depth - 1, newior);
 
 			//Frenel Equations
 			Rs = pow(fabs((ior_1 * cosOi - newior * cosOt) / (ior_1 * cosOi + newior * cosOt)), 2); //s-polarized (perpendicular)
@@ -215,6 +206,9 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 		//ratio of reflected ligth (mirror reflection attenuation)
 		Kr = 1 / 2 * (Rs + Rp);
+	}
+	else { // Material is Opaque
+		Kr = material->GetSpecular();
 	}
 
 
@@ -227,11 +221,11 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		Ray rray = Ray(precise_hit_point, rdir);
 
 		//get color contribution from ray
-		reflCol = rayTracing(rray, depth - 1, ior_1);
+		rColor = rayTracing(rray, depth - 1, ior_1);
 	}
 
 
-	color += reflCol * Kr + refrCol * (1 - Kr);
+	color += rColor * Kr + tColor * (1 - Kr);
 
 	return color.clamp();
 }
