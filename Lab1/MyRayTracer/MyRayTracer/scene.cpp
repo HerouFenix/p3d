@@ -12,12 +12,20 @@ Triangle::Triangle(Vector& P0, Vector& P1, Vector& P2)
 	points[0] = P0; points[1] = P1; points[2] = P2;
 
 	/* Calculate the normal */
-	normal = Vector(0, 0, 0);
+	normal = (P1 - P0) % (P2 - P0);
 	normal.normalize();
 
 	//Calculate the Min and Max for bounding box
-	Min = Vector(+FLT_MAX, +FLT_MAX, +FLT_MAX);
-	Max = Vector(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	float x0 = min(min(P0.x, P1.x), P2.x);
+	float y0 = min(min(P0.y, P1.y), P2.y);
+	float z0 = min(min(P0.z, P1.z), P2.z);
+
+	float x1 = max(max(P0.x, P1.x), P2.x);
+	float y1 = max(max(P0.y, P1.y), P2.y);
+	float z1 = max(max(P0.z, P1.z), P2.z);
+
+	Min = Vector(x0, y0, z0);
+	Max = Vector(x1, y1, z1);
 
 
 	// enlarge the bounding box a bit just in case...
@@ -39,8 +47,47 @@ Vector Triangle::getNormal(Vector point)
 //
 
 bool Triangle::intercepts(Ray& r, float& t) {
+	Vector P0 = points[0], P1 = points[1], P2 = points[2];
 
-	return (false);
+	float a = P0.x - P1.x, b = P0.x - P2.x, c = r.direction.x, d = P0.x - r.origin.x;
+	float e = P0.y - P1.y, f = P0.y - P2.y, g = r.direction.y, h = P0.y - r.origin.y;
+	float i = P0.z - P1.z, j = P0.z - P2.z, k = r.direction.z, l = P0.z - r.origin.z;
+
+	float m = f * k - g * j, n = h * k - g * l, p = f * l - h * j;
+	float q = g * i - e * k, s = e * j - f * i;
+
+	float inv_denom = 1.0 / (a * m + b * q + c * s);
+
+	float e1 = d * m - b * n - c * p;
+	float beta = e1 * inv_denom;
+
+	if (beta < 0.0) {
+		return (false);
+	}
+
+	float r_ = r_ = e * l - h * i;
+	float e2 = a * n + d * q + c * r_;
+	float gamma = e2 * inv_denom;
+
+	if (gamma < 0.0) {
+		return (false);
+	}
+
+	if (beta + gamma > 1.0) {
+		return (false);
+	}
+
+	float e3 = a * p - b * r_ + d * s;
+	float t_ = e3 * inv_denom;
+
+	if (t_ < 0.0001) {
+		return (false);
+	}
+
+	t = t_;
+	//sr.normal = normal;
+	//sr.local_hit_point = ray.origin + t * ray.direction;
+	return (true);
 }
 
 Plane::Plane(Vector& a_PN, float a_D)
@@ -98,7 +145,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 bool Plane::intercepts(Ray& r, float& t)
 {
 	float denom = PN * r.direction;
-	if (fabs(denom) > 0.0001f) {
+	if (fabs(denom) > 1e-4f) {
 		t = ((P - r.origin) * PN)/denom;
 		if (t >= 0) {
 			return true;
@@ -146,7 +193,7 @@ bool Sphere::intercepts(Ray& r, float& t)
 		t = b + sqrt(discriminant);
 	}
 
-	return (true);
+	return true;
 }
 
 

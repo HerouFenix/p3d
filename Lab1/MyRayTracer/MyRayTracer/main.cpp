@@ -140,7 +140,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				obj = scene->getObject(j);
 
 				if (obj->intercepts(feeler, cur_dist)) {
-					
+
 					in_shadow = true;
 					break;
 				}
@@ -148,14 +148,13 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 			// If point not in shadow
 			if (!in_shadow) {
-				Vector blinn = ((L + (ray.direction * -1))).normalize();
+				Vector H = ((L + (ray.direction * -1))).normalize();
 
 				Color diff = (light->color * material->GetDiffColor()) * (max(0, normal * L));
-				Color spec = (light->color * material->GetSpecColor()) * pow(max(0, blinn * normal), material->GetShine());
+				Color spec = (light->color * material->GetSpecColor()) * pow(max(0, H * normal), material->GetShine());
 
 				//color = diffuse color + specular color
-				//color = diff + spec;
-				color += diff * material->GetDiffuse() + spec * material->GetSpecular();
+				color += (diff * material->GetDiffuse() + spec * material->GetSpecular());
 			}
 		}
 
@@ -166,28 +165,28 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		return color.clamp();
 	}
 
-	//normal = !inside ? norm : norm * -1;
-	float Kr;
 
-	Vector v = ray.direction * -1; //view
-	Vector vn = (normal * (v * normal)); //viewnormal
-	Vector vt = vn - v; //viewtangent
+	// LAB 2: REFLECTION & REFRACTION //
 
-	Color refrCol = Color(), reflCol = Color();
+	Color tColor = Color(), rColor = Color();
 
-	if (material->GetTransmittance() == 0) {
-
-		//opaque material
-		Kr = material->GetSpecular();
+	bool inside = false; // Check if our ray is traveling within the object
+	if (ray.direction * normal > 0) {
+		inside = true;
+		normal = normal * -1;
 	}
-	else {
+
+	float Kr; // Reflection mix value 
+	Vector v = ray.direction * -1; // View
+	Vector vn = (normal * (v * normal)); // ViewNormal
+	Vector vt = vn - v; // ViewTangent
+
+	// REFRACTION //
+	if (material->GetTransmittance() > 0) {
 		float Rs = 1, Rp = 1;
 
-		//refraction index (snell law)
-		
-		float n = 
-			// !inside ? ior_1 / material->GetRefrIndex() : 
-			ior_1 / 1;
+		// Change rerfraction index depending of we're traveling inside or not (Snell Law)
+		float n = !inside ? ior_1 / material->GetRefrIndex() : ior_1;
 
 		float cosOi = vn.length();
 		float sinOt = (n)*vt.length(), cosOt;
@@ -196,42 +195,44 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		if (insqrt >= 0) {
 			cosOt = sqrt(insqrt);
 
-			//Refraction Secondary Rays
-			Vector refractDir = (vt.normalize() * sinOt + normal * (-cosOt)).normalize();
-			Vector interceptin = hit_point + refractDir;
+			// compute ray in the refracted direction
+			Vector tDir = (vt.normalize() * sinOt + normal * (-cosOt)).normalize();
+			Vector interceptIn = hit_point + tDir * .00001;
 
-			Ray refractedRay = Ray(interceptin, refractDir);
+			Ray tRay = Ray(interceptIn, tDir);
 
-			float newior = 
-				//!inside ? mat->GetRefrIndex() : 
-				!1; //MAGIC NUMBER
-			//rayTracing(...)
-			refrCol = rayTracing(refractedRay, depth - 1, newior);
+
+			float newIoR = !inside ? material->GetRefrIndex() : 1;
+
+			//	compute refracted color using recursion (tColor = rayTracing(refracted ray direction, depth+1)
+			tColor = rayTracing(tRay, depth + 1, newIoR);
 
 			//Frenel Equations
-			Rs = pow(fabs((ior_1 * cosOi - newior * cosOt) / (ior_1 * cosOi + newior * cosOt)), 2); //s-polarized (perpendicular)
-			Rp = pow(fabs((ior_1 * cosOt - newior * cosOi) / (ior_1 * cosOt + newior * cosOi)), 2); //p-polarized (parallel)
+			Rs = pow(fabs((ior_1 * cosOi - newIoR * cosOt) / (ior_1 * cosOi + newIoR * cosOt)), 2); //s-polarized (perpendicular)
+			Rp = pow(fabs((ior_1 * cosOt - newIoR * cosOi) / (ior_1 * cosOt + newIoR * cosOi)), 2); //p-polarized (parallel)
 		}
 
 		//ratio of reflected ligth (mirror reflection attenuation)
 		Kr = 1 / 2 * (Rs + Rp);
 	}
-
-
-	//if reflective
-	if (material->GetReflection() > 0) {
-
-		//throw ray in direction of reflection
-		Vector rdir = normal * ((ray.direction * -1) * normal) * 2 + ray.direction; // 2(V*n)*n-V; V=-ray
-
-		Ray rray = Ray(precise_hit_point, rdir);
-
-		//get color contribution from ray
-		reflCol = rayTracing(rray, depth - 1, ior_1);
+	else { // Material is opaque
+		Kr = material->GetSpecular();
 	}
 
 
-	color += reflCol * Kr + refrCol * (1 - Kr);
+	// REFLECTION //
+	if (material->GetReflection() > 0) {
+		//	compute ray in the reflected direction
+		Vector rDir = normal * ((ray.direction * -1) * normal) * 2 + ray.direction;
+
+		Ray rRay = Ray(precise_hit_point, rDir);
+
+		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1))
+		rColor = rayTracing(rRay, depth + 1, ior_1);
+	}
+
+	//	reduce rColor and tColor by the reflection mix value and add to color
+	color += rColor * Kr + tColor * (1 - Kr);
 
 	return color.clamp();
 }
