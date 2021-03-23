@@ -46,6 +46,70 @@ Vector Triangle::getNormal(Vector point)
 // Ray/Triangle intersection test using Tomas Moller-Ben Trumbore algorithm.
 //
 
+/*
+bool Triangle::intercepts(Ray& r, float& t) {
+	Vector v0 = points[0], v1 = points[1], v2 = points[2];
+
+	// compute plane's normal
+	Vector v0v1 = v1 - v0;
+	Vector v0v2 = v2 - v0;
+	// no need to normalize
+	Vector N; // N 
+	N.x = v0v1.y * v0v2.z - v0v1.z * v0v2.y;
+	N.y = v0v1.z * v0v2.x - v0v1.x * v0v2.z;
+	N.z = v0v1.x * v0v2.y - v0v1.y * v0v2.x;
+
+	float area2 = N.x * N.x + N.y * N.y + N.z * N.z;
+
+	// Step 1: finding P
+
+	// check if ray and plane are parallel ?
+	float NdotRayDirection = N * r.direction;
+	if (fabs(NdotRayDirection) < .0001f) // almost 0 
+		return false; // they are parallel so they don't intersect ! 
+
+	// compute d parameter using equation 2
+	float d = N * v0;
+
+	// compute t (equation 3)
+	t = (N * r.origin + d) / NdotRayDirection;
+	// check if the triangle is in behind the ray
+	if (t < 0) return false; // the triangle is behind 
+
+	// compute the intersection point using equation 1
+	Vector P = r.origin + r.direction * t;
+
+	// Step 2: inside-outside test
+	Vector C; // vector perpendicular to triangle's plane 
+
+	// edge 0
+	Vector edge0 = v1 - v0;
+	Vector vp0 = P - v0;
+	C.x = edge0.y * vp0.z - edge0.z * vp0.y;
+	C.y = edge0.z * vp0.x - edge0.x * vp0.z;
+	C.z = edge0.x * vp0.y - edge0.y * vp0.x;
+	if (N * C < 0) return false; // P is on the right side 
+
+	// edge 1
+	Vector edge1 = v2 - v1;
+	Vector vp1 = P - v1;
+	C.x = edge1.y * vp1.z - edge1.z * vp1.y;
+	C.y = edge1.z * vp1.x - edge1.x * vp1.z;
+	C.z = edge1.x * vp1.y - edge1.y * vp1.x;
+	if (N * C < 0)  return false; // P is on the right side 
+
+	// edge 2
+	Vector edge2 = v0 - v2;
+	Vector vp2 = P - v2;
+	C.x = edge2.y * vp2.z - edge2.z * vp2.y;
+	C.y = edge2.z * vp2.x - edge2.x * vp2.z;
+	C.z = edge2.x * vp2.y - edge2.y * vp2.x;
+	if (N * C < 0) return false; // P is on the right side; 
+
+	return true; // this ray hits the triangle 
+}
+*/
+
 bool Triangle::intercepts(Ray& r, float& t) {
 	Vector P0 = points[0], P1 = points[1], P2 = points[2];
 
@@ -70,24 +134,23 @@ bool Triangle::intercepts(Ray& r, float& t) {
 	float gamma = e2 * inv_denom;
 
 	if (gamma < 0.0) {
-		return (false);
+		return false;
 	}
 
 	if (beta + gamma > 1.0) {
-		return (false);
+		return false;
 	}
 
 	float e3 = a * p - b * r_ + d * s;
 	float t_ = e3 * inv_denom;
 
-	if (t_ < 0.0001) {
-		return (false);
+	if (t_ < 0.001) {
+		return false;
 	}
 
 	t = t_;
-	//sr.normal = normal;
-	//sr.local_hit_point = ray.origin + t * ray.direction;
-	return (true);
+
+	return true;
 }
 
 Plane::Plane(Vector& a_PN, float a_D)
