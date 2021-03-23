@@ -30,7 +30,7 @@
 #define VERTEX_COORD_ATTRIB 0
 #define COLOR_ATTRIB 1
 
-#define MAX_DEPTH 4
+#define MAX_DEPTH 6
 
 unsigned int FrameCount = 0;
 
@@ -155,6 +155,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 				//color = diffuse color + specular color
 				color += (diff * material->GetDiffuse() + spec * material->GetSpecular());
+				//std::cout << "Diffuse: " << material->GetDiffuse() << std::endl;
+				//std::cout << "Specular: " << material->GetSpecular() << std::endl;
 			}
 		}
 
