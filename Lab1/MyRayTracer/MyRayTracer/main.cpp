@@ -103,7 +103,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	// If no intersection, return BACKGROUND
 	if (closest_obj == NULL) {
-		if (scene->GetSkyBoxFlg())
+		if (scene->GetSkyBoxFlg() && false)
 			return scene->GetSkyboxColor(ray);
 		else
 			return scene->GetBackgroundColor();
@@ -170,33 +170,36 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	Color tColor = Color(), rColor = Color();
 
+	// https://www.scratchapixel.com/code.php?id=3&origin=/lessons/3d-basic-rendering/introduction-to-ray-tracing 
+
 	bool inside = false; // Check if our ray is traveling within the object
+	
 	if (ray.direction * normal > 0) {
 		inside = true;
 		normal = normal * -1;
 	}
 
 	float Kr; // Reflection mix value 
-	Vector v = ray.direction * -1; // View
-	Vector vn = (normal * (v * normal)); // ViewNormal
-	Vector vt = vn - v; // ViewTangent
+	Vector view = ray.direction * -1; // View
+	Vector viewNormal = (normal * (view * normal)); // ViewNormal
+	Vector viewTangent = viewNormal - view; // ViewTangent
 
 	// REFRACTION //
 	if (material->GetTransmittance() > 0) {
-		float Rs = 1, Rp = 1;
+		float Rperp = 1, Rparal = 1;
 
 		// Change rerfraction index depending of we're traveling inside or not (Snell Law)
 		float n = !inside ? ior_1 / material->GetRefrIndex() : ior_1;
 
-		float cosOi = vn.length();
-		float sinOt = (n)*vt.length(), cosOt;
+		float cosOi = viewNormal.length();
+		float sinOt = (n)*viewTangent.length(), cosOt;
 		float insqrt = 1 - pow(sinOt, 2);
 
 		if (insqrt >= 0) {
 			cosOt = sqrt(insqrt);
 
 			// compute ray in the refracted direction
-			Vector tDir = (vt.normalize() * sinOt + normal * (-cosOt)).normalize();
+			Vector tDir = (viewTangent.normalize() * sinOt + normal * (-cosOt)).normalize();
 			Vector interceptIn = hit_point + tDir * .00001;
 
 			Ray tRay = Ray(interceptIn, tDir);
@@ -207,13 +210,13 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			//	compute refracted color using recursion (tColor = rayTracing(refracted ray direction, depth+1)
 			tColor = rayTracing(tRay, depth + 1, newIoR);
 
-			//Frenel Equations
-			Rs = pow(fabs((ior_1 * cosOi - newIoR * cosOt) / (ior_1 * cosOi + newIoR * cosOt)), 2); //s-polarized (perpendicular)
-			Rp = pow(fabs((ior_1 * cosOt - newIoR * cosOi) / (ior_1 * cosOt + newIoR * cosOi)), 2); //p-polarized (parallel)
+			//Fresnel Equations https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
+			Rperp = pow(fabs((ior_1 * cosOi - newIoR * cosOt) / (ior_1 * cosOi + newIoR * cosOt)), 2); // perpendicular
+			Rparal = pow(fabs((ior_1 * cosOt - newIoR * cosOi) / (ior_1 * cosOt + newIoR * cosOi)), 2); // parallel
 		}
 
 		//ratio of reflected ligth (mirror reflection attenuation)
-		Kr = 1 / 2 * (Rs + Rp);
+		Kr = 1 / 2 * (Rperp + Rparal);
 	}
 	else { // Material is opaque
 		Kr = material->GetSpecular();

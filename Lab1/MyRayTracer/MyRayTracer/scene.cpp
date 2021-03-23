@@ -163,16 +163,12 @@ Vector Plane::getNormal(Vector point)
 
 bool Sphere::intercepts(Ray& r, float& t)
 {
+	// https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
 
-	Vector Rd = r.direction;
-
-	Vector co = (center - r.origin);
-
-	float doc2 = co.x *co.x + co.y * co.y + co.z * co.z;
-
-	float b = co * Rd;
-
-	float c = doc2 - radius * radius;
+	Vector L = center - r.origin;
+	//float a = r.direction * r.direction;
+	float b = L * r.direction;
+	float c = L * L - radius * radius;
 
 	if (c > 0) {
 		if (b < 0) {
@@ -204,8 +200,8 @@ Vector Sphere::getNormal(Vector point)
 }
 
 AABB Sphere::GetBoundingBox() {
-	Vector a_min;
-	Vector a_max;
+	Vector a_min = (center - Vector(radius, radius, radius));
+	Vector a_max = (center + Vector(radius, radius, radius));
 	return(AABB(a_min, a_max));
 }
 
@@ -221,11 +217,93 @@ AABB aaBox::GetBoundingBox() {
 
 bool aaBox::intercepts(Ray& ray, float& t)
 {
-	return (false);
+	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+
+	float a = 1.0f / ray.direction.x;
+	if (a >= 0) {
+		tmin = (min.x - ray.origin.x) * a;
+		tmax = (max.x - ray.origin.x) * a;
+	}
+	else {
+		tmin = (max.x - ray.origin.x) * a;
+		tmax = (min.x - ray.origin.x) * a;
+	}
+
+	float b = 1.0f / ray.direction.y;
+	if (b >= 0) {
+		tymin = (min.y - ray.origin.y) * b;
+		tymax = (max.y - ray.origin.y) * b;
+	}
+	else {
+		tymin = (max.y - ray.origin.y) * b;
+		tymax = (min.y - ray.origin.y) * b;
+	}
+
+
+	if ((tmin > tymax) || (tymin > tmax))
+		return false;
+
+	if (tymin > tmin)
+		tmin = tymin;
+	if (tymax < tmax)
+		tmax = tymax;
+
+
+	float c = 1.0f / ray.direction.z;
+	if (c >= 0) {
+		tzmin = (min.z - ray.origin.z) * c;
+		tzmax = (max.z - ray.origin.z) * c;
+	}
+	else {
+		tzmin = (max.z - ray.origin.z) * c;
+		tzmax = (min.z - ray.origin.z) * c;
+	}
+	
+	if ((tmin > tzmax) || (tzmin > tmax))
+		return false;
+
+	if (tzmin > tmin)
+		tmin = tzmin;
+	if (tzmax < tmax)
+		tmax = tzmax;
+
+	t = tmin;
+
+	if (t < 0) {
+		t = tmax;
+		if (t < 0) return false;
+	}
+
+	return true;
 }
 
 Vector aaBox::getNormal(Vector point)
 {
+	Vector center = (max + min) / 2;
+	Vector co = point - center;
+	int dir; 
+
+	if (fabs(co.x) > fabs(co.y)) {
+		if (fabs(co.z) > fabs(co.x)) {
+			if (co.z >= 0) Normal = Vector(0, 0, 1);
+			else Normal = Vector(0, 0, -1);
+		}
+		else {
+			if (co.x >= 0) Normal = Vector(1, 0, 0);
+			else Normal = Vector(-1, 0, 0);
+		}
+	}
+	else {
+		if (fabs(co.z) > fabs(co.y)) {
+			if (co.z >= 0) Normal = Vector(0, 0, 1);
+			else Normal = Vector(0, 0, -1);
+		}
+		else {
+			if (co.y >= 0) Normal = Vector(0, 1, 0);
+			else Normal = Vector(0, -1, 0);
+		}
+	}
+
 	return Normal;
 }
 
