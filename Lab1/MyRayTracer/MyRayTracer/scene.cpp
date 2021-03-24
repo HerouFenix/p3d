@@ -42,6 +42,11 @@ Vector Triangle::getNormal(Vector point)
 	return normal;
 }
 
+int Triangle::GetObjectType()
+{
+	return 1;
+}
+
 //
 // Ray/Triangle intersection test using Tomas Moller-Ben Trumbore algorithm.
 //
@@ -223,6 +228,10 @@ Vector Plane::getNormal(Vector point)
 	return PN;
 }
 
+int Plane::GetObjectType()
+{
+	return 0;
+}
 
 bool Sphere::intercepts(Ray& r, float& t)
 {
@@ -262,6 +271,11 @@ Vector Sphere::getNormal(Vector point)
 	return (normal.normalize());
 }
 
+int Sphere::GetObjectType()
+{
+	return 2;
+}
+
 AABB Sphere::GetBoundingBox() {
 	Vector a_min = (center - Vector(radius, radius, radius));
 	Vector a_max = (center + Vector(radius, radius, radius));
@@ -276,6 +290,11 @@ aaBox::aaBox(Vector& minPoint, Vector& maxPoint) //Axis aligned Box: another geo
 
 AABB aaBox::GetBoundingBox() {
 	return(AABB(min, max));
+}
+
+int aaBox::GetObjectType()
+{
+	return 3;
 }
 
 bool aaBox::intercepts(Ray& ray, float& t)
@@ -333,8 +352,8 @@ bool aaBox::intercepts(Ray& ray, float& t)
 	t = tmin;
 
 	if (t < 0) {
+		if (tmax < 0) return false;
 		t = tmax;
-		if (t < 0) return false;
 	}
 
 	return true;

@@ -81,6 +81,7 @@ public:
 	virtual bool intercepts( Ray& r, float& dist ) = 0;
 	virtual Vector getNormal( Vector point ) = 0;
 	virtual AABB GetBoundingBox() { return AABB(); }
+	virtual int GetObjectType() { return -1; };
 
 protected:
 	Material* m_Material;
@@ -100,6 +101,7 @@ public:
 
 		 bool intercepts( Ray& r, float& dist );
          Vector getNormal(Vector point);
+		 int GetObjectType();
 };
 
 class Triangle : public Object
@@ -110,6 +112,7 @@ public:
 	bool intercepts( Ray& r, float& t);
 	Vector getNormal(Vector point);
 	AABB GetBoundingBox(void);
+	int GetObjectType();
 	
 protected:
 	Vector points[3];
@@ -128,6 +131,7 @@ public:
 	bool intercepts( Ray& r, float& t);
 	Vector getNormal(Vector point);
 	AABB GetBoundingBox(void);
+	int GetObjectType();
 
 private:
 	Vector center;
@@ -141,6 +145,7 @@ public:
 	AABB GetBoundingBox(void);
 	bool intercepts(Ray& r, float& t);
 	Vector getNormal(Vector point);
+	int GetObjectType();
 
 private:
 	Vector min;
