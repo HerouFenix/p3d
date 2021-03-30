@@ -78,6 +78,11 @@ int RES_X, RES_Y;
 
 int WindowHandle = 0;
 
+/* OPTIONS *///////////////////////////////
+bool ANTIALIASING = false;
+bool SOFT_SHADOWS = true;
+///////////////////////////////////////////
+
 template<typename Base, typename T>
 inline bool instanceof(const T*) {
 	return is_base_of<Base, T>::value;
@@ -101,9 +106,9 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		}
 	}
 
-	// If no intersection, return BACKGROUND
+	// If no intersection, return BACKGROUND or SKYBOX if applicable
 	if (closest_obj == NULL) {
-		if (scene->GetSkyBoxFlg() && false)
+		if (scene->GetSkyBoxFlg())
 			return scene->GetSkyboxColor(ray);
 		else
 			return scene->GetBackgroundColor();
@@ -121,11 +126,39 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	Light* light = NULL;
 	Vector L;
 	Material* material = closest_obj->GetMaterial();
-	int objType = closest_obj->GetObjectType();
+	int objType = closest_obj->GetObjectType(); // Get the closest object type (for DEBUGING purposes)
 
 	// For each light source
 	for (int i = 0; i < scene->getNumLights(); i++) {
 		light = scene->getLight(i);
+
+		// LAB 3: SOFT SHADOWS //
+		if (SOFT_SHADOWS) {
+			if (!ANTIALIASING) {
+				// represent the area light as a distributed set of N point lights, each with one Nth of the intensity of the base light
+
+				int n = 4; // Number of point lights
+				float dist = 0.5f; // Distance between point lights
+				float cur_x = light->position.x - dist*n/2;
+				float cur_y = light->position.y + dist*n/2;
+
+				Light* newLight = nullptr;
+
+				Color avg_col = light->color / (n * n);
+
+				for (int y = 0; y < n; y++) {
+					for (int x = 0; x < n; x++) {
+						newLight = new Light(Vector(cur_x, cur_y, light->position.z), avg_col);
+						cur_x += dist;
+					}
+					cur_y -= dist; // Go down a line
+					cur_x = light->position.x - dist*n/2; // Reset col to start
+				}
+			}
+		}
+		else {
+			// Single light
+		}
 
 		// Get L - the unit vector from the hit point to the light source
 		L = (light->position - precise_hit_point).normalize();
@@ -161,7 +194,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	}
 
-	// If depth >= max depth return color
+	// If depth >= max depth, stop casting indirect lighting.
 	if (depth >= MAX_DEPTH) {
 		return color.clamp();
 	}
@@ -174,7 +207,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	// https://www.scratchapixel.com/code.php?id=3&origin=/lessons/3d-basic-rendering/introduction-to-ray-tracing 
 
 	bool inside = false; // Check if our ray is traveling within the object
-	
+
 	if (ray.direction * normal > 0) {
 		inside = true;
 		normal = normal * -1;
@@ -441,6 +474,11 @@ void renderScene()
 		scene->GetCamera()->SetEye(Vector(camX, camY, camZ));  //Camera motion
 	}
 
+	// Set random seed for this iteration
+	set_rand_seed(time(NULL)); // https://www.cplusplus.com/reference/cstdlib/srand/
+
+
+	// For each pixel
 	for (int y = 0; y < RES_Y; y++)
 	{
 		for (int x = 0; x < RES_X; x++)
@@ -448,12 +486,29 @@ void renderScene()
 			Color color;
 
 			Vector pixel;  //viewport coordinates
-			pixel.x = x + 0.5f;
-			pixel.y = y + 0.5f;
 
-			/*YOUR 2 FUNTIONS: */
-			Ray ray = scene->GetCamera()->PrimaryRay(pixel);
-			color = rayTracing(ray, 1, 1.0).clamp();
+			/* NO ANTI ALIASING */
+			if (!ANTIALIASING) {
+				pixel.x = x + 0.5f;
+				pixel.y = y + 0.5f;
+
+				Ray ray = scene->GetCamera()->PrimaryRay(pixel);
+				color = rayTracing(ray, 1, 1.0).clamp();
+			}
+			else {
+				// LAB 3: ANTIALIASING [JITTER] //
+				int n = 4; // Number of rays to shoot for each pixel
+				for (int p = 0; p < n; p++) {
+					for (int q = 0; q < n; q++) {
+						pixel.x = x + (p + rand_float()) / n;
+						pixel.y = y + (q + rand_float()) / n;
+
+						Ray ray = scene->GetCamera()->PrimaryRay(pixel);
+						color += rayTracing(ray, 1, 1.0).clamp();
+					}
+				}
+				color = color / (n * n);
+			}
 
 			//color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
 
