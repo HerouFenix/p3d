@@ -29,6 +29,7 @@ public:
 	float GetPlaneDist() { return plane_dist; }
 	float GetFar() {return vfar; }
 	float GetAperture() { return aperture; }
+	float GetFocalRatio() { return focal_ratio; }
 
     Camera( Vector from, Vector At, Vector Up, float angle, float hither, float yon, int ResX, int ResY, float Aperture_ratio, float Focal_ratio) {
 	    eye = from;
@@ -93,6 +94,18 @@ public:
 		Vector ray_dir;
 		Vector eye_offset;
 
+		// Compute the point p where the center ray hits the focal plane
+		Vector p(w * (pixel_sample.x / res_x - 0.5f) * focal_ratio, h * (pixel_sample.y / res_y - 0.5f) * focal_ratio,0);
+		
+		// Use p and the sample point on the lens to compute the direction of hte primary ray so that this ray also goes through p
+		
+		Vector vX = u * (p.x - lens_sample.x);
+		Vector vY = v * (p.y - lens_sample.y);
+		Vector vZ = n * -(focal_ratio * plane_dist);
+
+		ray_dir = (vX + vY + vZ).normalize();
+		eye_offset = eye + (u * lens_sample.x) + (v * lens_sample.y);
+		
 		return Ray(eye_offset, ray_dir);
 	}
 };

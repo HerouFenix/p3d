@@ -79,11 +79,13 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-bool ANTIALIASING = false;
-int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
+bool ANTIALIASING = true;
+int SPP = 20; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
 bool SOFT_SHADOWS = true;
-int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light
+int NO_LIGHTS = 20; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
+
+bool DEPTH_OF_FIELD = true;
 ///////////////////////////////////////////
 
 template<typename Base, typename T>
@@ -172,26 +174,28 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	// For each light source
 	for (int i = 0; i < scene->getNumLights(); i++) {
 		light = scene->getLight(i);
+		Vector pos;
 
 		// LAB 3: SOFT SHADOWS //
 		if (SOFT_SHADOWS) {
-			if (!ANTIALIASING) {
+			Light* newLight = NULL;
+			float size = 0.5f; // size of the light jitter
+
+			if (!ANTIALIASING) { // TODO: CHECK IF COMPUTING THE NEWLIGHT OUTSIDE THE RAYTRACING FUNCTION HAS BETTER PERFORMANCE (pq assim, smpr q formos buscar uma luz tamos a computar a area light toda again, this probably only needs to be done once)
 				// represent the area light as a distributed set of N point lights, each with one Nth of the intensity of the base light
-				float size = 0.5f; // "Size" of each light (e.g in a 4x4 grid, what's the size of each cell
 
 				float dist = size / NO_LIGHTS;
 				// Start at the top left corner of the grid 
-				float cur_x = light->position.x - dist * NO_LIGHTS/2; // TODO: MATHEMATICALLY CHECK IF THIS IS DOING WHAT I THINK ITS DOING
-				float cur_y = light->position.y - dist * NO_LIGHTS/2;
+				float cur_x = light->position.x - dist * NO_LIGHTS / 2;
+				float cur_y = light->position.y - dist * NO_LIGHTS / 2;
 
 				Color avg_col = light->color / (NO_LIGHTS * NO_LIGHTS);
-				Light* newLight = NULL;
 
 				// Iterate over each line of the grid
 				for (int y = 0; y < NO_LIGHTS; y++) {
 					// Iterate over each column of the grid
 					for (int x = 0; x < NO_LIGHTS; x++) {
-						Vector pos = Vector(cur_x, cur_y, light->position.z);
+						pos = Vector(cur_x, cur_y, light->position.z);
 						newLight = new Light(pos, avg_col);
 
 						processLight(*newLight, color, *material, ray, precise_hit_point, normal);
@@ -199,8 +203,20 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 						cur_x += dist; // Move to next column
 					}
 					cur_y += dist;
-					cur_x = light->position.x - dist * NO_LIGHTS/2;
+					cur_x = light->position.x - dist * NO_LIGHTS / 2;
 				}
+			}
+			else {
+				// TODO: FIX THIS
+				// represent the area light as an infinite number of point lights and choose one at random for each primary ray
+				pos = Vector(
+					light->position.x + size * (ray.origin.x + rand_float()) / NO_LIGHTS,
+					light->position.y + size * (ray.origin.y + rand_float()) / NO_LIGHTS,
+					light->position.z);
+				newLight = new Light(pos, light->color);
+
+				processLight(*newLight, color, *material, ray, precise_hit_point, normal);
+
 			}
 		}
 		else {
@@ -491,7 +507,6 @@ void renderScene()
 	// Set random seed for this iteration
 	set_rand_seed(time(NULL)); // https://www.cplusplus.com/reference/cstdlib/srand/
 
-
 	// For each pixel
 	for (int y = 0; y < RES_Y; y++)
 	{
@@ -517,10 +532,28 @@ void renderScene()
 						pixel.x = x + (p + rand_float()) / SPP;
 						pixel.y = y + (q + rand_float()) / SPP;
 
-						Ray ray = scene->GetCamera()->PrimaryRay(pixel);
-						color += rayTracing(ray, 1, 1.0).clamp();
+						Ray* ray = nullptr;
+
+						// LAB 3: DEPTH OF FIELD //
+						if (DEPTH_OF_FIELD) {
+							Vector lens; 
+							float aperture = scene->GetCamera()->GetAperture();
+
+							// Compute the sample point on the lens "thin lens"
+							lens.x = ((p + rand_float()) / SPP) * aperture;
+							lens.y = ((q + rand_float()) / SPP) * aperture;
+
+							ray = &scene->GetCamera()->PrimaryRay(lens, pixel);
+						}
+						else {
+							ray = &scene->GetCamera()->PrimaryRay(pixel);
+						}
+						
+					
+						color += rayTracing(*ray, 1, 1.0).clamp();
 					}
 				}
+
 				color = color / (SPP * SPP);
 			}
 
