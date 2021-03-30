@@ -80,12 +80,53 @@ int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
 bool ANTIALIASING = false;
+int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
+
 bool SOFT_SHADOWS = true;
+int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light
 ///////////////////////////////////////////
 
 template<typename Base, typename T>
 inline bool instanceof(const T*) {
 	return is_base_of<Base, T>::value;
+}
+
+void processLight(Light light, Color& color, Material material, Ray ray, Vector hit_point, Vector normal) {
+	Object* obj = NULL;
+	Vector L;
+	float cur_dist = FLT_MAX;
+
+	// Get L - the unit vector from the hit point to the light source
+	L = (light.position - hit_point).normalize();
+
+	// If dot product of L and the normal is bigger than zero
+	if (L * normal > 0) {
+		// Check if point is NOT in shadow
+		Ray feeler = Ray(hit_point, L); // Ray going from the intersection point pointing to the light
+		bool in_shadow = false;
+
+		// Iterate over all objects to see if any are between the intersection point and the light source
+		for (int j = 0; j < scene->getNumObjects(); j++) {
+			obj = scene->getObject(j);
+
+			if (obj->intercepts(feeler, cur_dist)) {
+
+				in_shadow = true;
+				break;
+			}
+		}
+
+		// If point not in shadow
+		if (!in_shadow) {
+			Vector H = ((L + (ray.direction * -1))).normalize();
+
+			Color diff = (light.color * material.GetDiffColor()) * (max(0, normal * L));
+			Color spec = (light.color * material.GetSpecColor()) * pow(max(0, H * normal), material.GetShine());
+
+			//color = diffuse color + specular color
+			color += (diff * material.GetDiffuse() + spec * material.GetSpecular());
+		}
+	}
 }
 
 Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
@@ -136,62 +177,35 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		if (SOFT_SHADOWS) {
 			if (!ANTIALIASING) {
 				// represent the area light as a distributed set of N point lights, each with one Nth of the intensity of the base light
+				float size = 0.5f; // "Size" of each light (e.g in a 4x4 grid, what's the size of each cell
 
-				int n = 4; // Number of point lights
-				float dist = 0.5f; // Distance between point lights
-				float cur_x = light->position.x - dist*n/2;
-				float cur_y = light->position.y + dist*n/2;
+				float dist = size / NO_LIGHTS;
+				// Start at the top left corner of the grid 
+				float cur_x = light->position.x - dist * NO_LIGHTS/2; // TODO: MATHEMATICALLY CHECK IF THIS IS DOING WHAT I THINK ITS DOING
+				float cur_y = light->position.y - dist * NO_LIGHTS/2;
 
-				Light* newLight = nullptr;
+				Color avg_col = light->color / (NO_LIGHTS * NO_LIGHTS);
+				Light* newLight = NULL;
 
-				Color avg_col = light->color / (n * n);
+				// Iterate over each line of the grid
+				for (int y = 0; y < NO_LIGHTS; y++) {
+					// Iterate over each column of the grid
+					for (int x = 0; x < NO_LIGHTS; x++) {
+						Vector pos = Vector(cur_x, cur_y, light->position.z);
+						newLight = new Light(pos, avg_col);
 
-				for (int y = 0; y < n; y++) {
-					for (int x = 0; x < n; x++) {
-						newLight = new Light(Vector(cur_x, cur_y, light->position.z), avg_col);
-						cur_x += dist;
+						processLight(*newLight, color, *material, ray, precise_hit_point, normal);
+
+						cur_x += dist; // Move to next column
 					}
-					cur_y -= dist; // Go down a line
-					cur_x = light->position.x - dist*n/2; // Reset col to start
+					cur_y += dist;
+					cur_x = light->position.x - dist * NO_LIGHTS/2;
 				}
 			}
 		}
 		else {
-			// Single light
+			processLight(*light, color, *material, ray, precise_hit_point, normal);
 		}
-
-		// Get L - the unit vector from the hit point to the light source
-		L = (light->position - precise_hit_point).normalize();
-
-		// If dot product of L and the normal is bigger than zero
-		if (L * normal > 0) {
-			// Check if point is NOT in shadow
-			Ray feeler = Ray(precise_hit_point, L); // Ray going from the intersection point pointing to the light
-			bool in_shadow = false;
-
-			// Iterate over all objects to see if any are between the intersection point and the light source
-			for (int j = 0; j < scene->getNumObjects(); j++) {
-				obj = scene->getObject(j);
-
-				if (obj->intercepts(feeler, cur_dist)) {
-
-					in_shadow = true;
-					break;
-				}
-			}
-
-			// If point not in shadow
-			if (!in_shadow) {
-				Vector H = ((L + (ray.direction * -1))).normalize();
-
-				Color diff = (light->color * material->GetDiffColor()) * (max(0, normal * L));
-				Color spec = (light->color * material->GetSpecColor()) * pow(max(0, H * normal), material->GetShine());
-
-				//color = diffuse color + specular color
-				color += (diff * material->GetDiffuse() + spec * material->GetSpecular());
-			}
-		}
-
 	}
 
 	// If depth >= max depth, stop casting indirect lighting.
@@ -497,17 +511,17 @@ void renderScene()
 			}
 			else {
 				// LAB 3: ANTIALIASING [JITTER] //
-				int n = 4; // Number of rays to shoot for each pixel
-				for (int p = 0; p < n; p++) {
-					for (int q = 0; q < n; q++) {
-						pixel.x = x + (p + rand_float()) / n;
-						pixel.y = y + (q + rand_float()) / n;
+
+				for (int p = 0; p < SPP; p++) {
+					for (int q = 0; q < SPP; q++) {
+						pixel.x = x + (p + rand_float()) / SPP;
+						pixel.y = y + (q + rand_float()) / SPP;
 
 						Ray ray = scene->GetCamera()->PrimaryRay(pixel);
 						color += rayTracing(ray, 1, 1.0).clamp();
 					}
 				}
-				color = color / (n * n);
+				color = color / (SPP * SPP);
 			}
 
 			//color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
