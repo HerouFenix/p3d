@@ -80,12 +80,17 @@ int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
 bool ANTIALIASING = true;
-int SPP = 20; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
+int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = true;
-int NO_LIGHTS = 20; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
+bool SOFT_SHADOWS = false;
+int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 
 bool DEPTH_OF_FIELD = true;
+///////////////////////////////////////////
+
+/* ACCELERATION STRUCTURES *///////////////
+Grid uGrid;
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 ///////////////////////////////////////////
 
 template<typename Base, typename T>
@@ -107,15 +112,42 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 		Ray feeler = Ray(hit_point, L); // Ray going from the intersection point pointing to the light
 		bool in_shadow = false;
 
-		// Iterate over all objects to see if any are between the intersection point and the light source
-		for (int j = 0; j < scene->getNumObjects(); j++) {
-			obj = scene->getObject(j);
+		switch (USE_ACCEL_STRUCT) {
+		case 0: // No acceleration structure
+			// Iterate over all objects to see if any are between the intersection point and the light source
+			for (int j = 0; j < scene->getNumObjects(); j++) {
+				obj = scene->getObject(j);
 
-			if (obj->intercepts(feeler, cur_dist)) {
+				if (obj->intercepts(feeler, cur_dist)) {
 
-				in_shadow = true;
-				break;
+					in_shadow = true;
+					break;
+				}
 			}
+			break;
+
+		case 1: // Uniform Grid
+			// Traverse Grid
+			if (!uGrid.Traverse(feeler)) {
+				in_shadow = true;
+			}
+			break;
+
+		case 2: // BHV
+			break;
+
+		default:
+			// Iterate over all objects to see if any are between the intersection point and the light source
+			for (int j = 0; j < scene->getNumObjects(); j++) {
+				obj = scene->getObject(j);
+
+				if (obj->intercepts(feeler, cur_dist)) {
+
+					in_shadow = true;
+					break;
+				}
+			}
+			break;
 		}
 
 		// If point not in shadow
@@ -139,14 +171,43 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	Object* closest_obj = NULL;
 	float cur_dist, min_dist = FLT_MAX;
 
-	//Intersect Ray with all objects and find the closest hit point (if it exists)
-	for (int i = 0; i < scene->getNumObjects(); i++) {
-		obj = scene->getObject(i);
+	Vector hit_point;
 
-		if (obj->intercepts(ray, cur_dist) && (cur_dist < min_dist)) {
-			closest_obj = obj;
-			min_dist = cur_dist;
+	// LAB 3: ACCELERATION STRUCTURES //
+	switch (USE_ACCEL_STRUCT) {
+	case 0: // No acceleration structure
+		//Intersect Ray with all objects and find the closest hit point (if it exists)
+		for (int i = 0; i < scene->getNumObjects(); i++) {
+			obj = scene->getObject(i);
+
+			if (obj->intercepts(ray, cur_dist) && (cur_dist < min_dist)) {
+				closest_obj = obj;
+				min_dist = cur_dist;
+			}
 		}
+		break;
+
+	case 1: // Uniform Grid
+		// Traverse Grid
+		if (!uGrid.Traverse(ray, &closest_obj, hit_point)) {
+			closest_obj = NULL;
+		}
+		break;
+
+	case 2: // BHV
+		break;
+
+	default:
+		//Intersect Ray with all objects and find the closest hit point (if it exists)
+		for (int i = 0; i < scene->getNumObjects(); i++) {
+			obj = scene->getObject(i);
+
+			if (obj->intercepts(ray, cur_dist) && (cur_dist < min_dist)) {
+				closest_obj = obj;
+				min_dist = cur_dist;
+			}
+		}
+		break;
 	}
 
 	// If no intersection, return BACKGROUND or SKYBOX if applicable
@@ -157,7 +218,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			return scene->GetBackgroundColor();
 	}
 
-	Vector hit_point = ray.origin + ray.direction * min_dist;
+	hit_point = ray.origin + ray.direction * min_dist;
 
 	// Hitpoint computation with offset (remove Acne)
 	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * .0001;
@@ -507,6 +568,19 @@ void renderScene()
 	// Set random seed for this iteration
 	set_rand_seed(time(NULL)); // https://www.cplusplus.com/reference/cstdlib/srand/
 
+	if (USE_ACCEL_STRUCT == 1) { // Uniform Grid
+		uGrid = Grid();
+		for (int i = 0; i < scene->getNumObjects(); i++ ) {
+			uGrid.addObject(scene->getObject(i));
+		}
+
+		uGrid.Build();
+	}
+	else if (USE_ACCEL_STRUCT == 2) { // BVH
+
+	}
+
+
 	// For each pixel
 	for (int y = 0; y < RES_Y; y++)
 	{
@@ -536,7 +610,7 @@ void renderScene()
 
 						// LAB 3: DEPTH OF FIELD //
 						if (DEPTH_OF_FIELD) {
-							Vector lens; 
+							Vector lens;
 							float aperture = scene->GetCamera()->GetAperture();
 
 							// Compute the sample point on the lens "thin lens"
@@ -548,8 +622,8 @@ void renderScene()
 						else {
 							ray = &scene->GetCamera()->PrimaryRay(pixel);
 						}
-						
-					
+
+
 						color += rayTracing(*ray, 1, 1.0).clamp();
 					}
 				}
