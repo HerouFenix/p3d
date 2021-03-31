@@ -296,8 +296,8 @@ bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, doubl
 	float ty_max = (bbox.max.y - ray.origin.y) / ray.direction.y;
 	if (ty_min > ty_max) swap(ty_max, ty_min);
 
-	float tz_max = (bbox.max.z - ray.origin.z) / ray.direction.z;
 	float tz_min = (bbox.min.z - ray.origin.z) / ray.direction.z;
+	float tz_max = (bbox.max.z - ray.origin.z) / ray.direction.z;
 	if (tz_min > tz_max) swap(tz_max, tz_min);
 
 	float tMin = MAX3(tx_min, ty_min, tz_min);
@@ -334,7 +334,7 @@ bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, doubl
 	}
 	else {
 		tx_next = tx_min + (ix + 1) * dtx;
-		ix_step++;
+		ix_step = 1;
 		ix_stop = nx;
 	}
 
@@ -345,7 +345,7 @@ bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, doubl
 	}
 	else {
 		ty_next = ty_min + (iy + 1) * dty;
-		iy_step++;
+		iy_step = 1;
 		iy_stop = ny;
 	}
 
@@ -356,7 +356,7 @@ bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, doubl
 	}
 	else {
 		tz_next = tz_min + (iz + 1) * dtz;
-		iz_step++;
+		iz_step = 1;
 		iz_stop = nz;
 	}
 

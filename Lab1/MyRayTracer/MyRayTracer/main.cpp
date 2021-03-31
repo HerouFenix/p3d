@@ -126,9 +126,9 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 			}
 			break;
 
-		case 3: // Uniform Grid
+		case 1: // Uniform Grid
 			// Traverse Grid
-			if (!uGrid.Traverse(feeler)) {
+			if (uGrid.Traverse(feeler)) { // If the ray hits smth when traversing, we're in shadow
 				in_shadow = true;
 			}
 			break;
