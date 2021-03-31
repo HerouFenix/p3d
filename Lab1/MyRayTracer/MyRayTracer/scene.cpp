@@ -9,6 +9,7 @@
 
 Triangle::Triangle(Vector& P0, Vector& P1, Vector& P2)
 {
+	// TODO: CHANGE THIS !!!!!!!!!!!!
 	points[0] = P0; points[1] = P1; points[2] = P2;
 
 	/* Calculate the normal */
@@ -212,15 +213,20 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 
 bool Plane::intercepts(Ray& r, float& t)
 {
-	float denom = PN * r.direction;
-	if (fabs(denom) > 1e-4f) {
-		t = ((P - r.origin) * PN)/denom;
-		if (t >= 0) {
-			return true;
-		}
+	float numer = (r.origin - P) * PN;
+	float divid = PN * r.direction;
+
+	if (fabs(divid) < 0.0001) {
+		return false;
 	}
 
-	return false;
+	t = -(numer / divid);
+
+	if (t <= 0) {
+		return false;
+	}
+
+	return (true);
 }
 
 Vector Plane::getNormal(Vector point)

@@ -112,6 +112,7 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 		Ray feeler = Ray(hit_point, L); // Ray going from the intersection point pointing to the light
 		bool in_shadow = false;
 
+		// LAB 3: ACCELERATION STRUCTURES //
 		switch (USE_ACCEL_STRUCT) {
 		case 0: // No acceleration structure
 			// Iterate over all objects to see if any are between the intersection point and the light source
@@ -187,7 +188,9 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		}
 		break;
 
-	case 3: // Uniform Grid
+	case 1: // Uniform Grid
+
+		// TODO: SOMEWHY, AT SOMEPOINT HIT_POINT DOESNT GET DEFINED AND IT FUCKS EVERYTHING UP...CHECK WHATS WRONG
 		// Traverse Grid
 		if (!uGrid.Traverse(ray, &closest_obj, hit_point)) {
 			closest_obj = NULL;
@@ -568,6 +571,7 @@ void renderScene()
 	// Set random seed for this iteration
 	set_rand_seed(time(NULL)); // https://www.cplusplus.com/reference/cstdlib/srand/
 
+	// LAB 3: ACCELERATION STRUCTURES //
 	if (USE_ACCEL_STRUCT == 1) { // Uniform Grid
 		uGrid = Grid();
 		for (int i = 0; i < scene->getNumObjects(); i++ ) {
