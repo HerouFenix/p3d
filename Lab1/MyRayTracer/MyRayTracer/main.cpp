@@ -90,7 +90,7 @@ bool DEPTH_OF_FIELD = false;
 
 /* ACCELERATION STRUCTURES *///////////////
 Grid uGrid;
-int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 ///////////////////////////////////////////
 
 template<typename Base, typename T>

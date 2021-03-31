@@ -344,7 +344,7 @@ bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, doubl
 	}
 
 	if (ray.direction.y < 0) {
-		ty_next = tx_min + (nx - ix) * dtx;
+		ty_next = ty_min + (ny - iy) * dty;
 		iy_step = -1;
 		iy_stop = -1;
 	}
