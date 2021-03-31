@@ -95,6 +95,11 @@ bool Grid::Traverse(Ray& ray, Object** hitobject, Vector& hitpoint)
 	double dt_x, dt_y, dt_z;
 
 	// Init values (or cancel if init traverse returns false)
+	//bool oof = Init_Traverse(ray, ix, iy, iz, dt_x, dt_y, dt_z, t_next_x, t_next_y, t_next_z, ix_step, iy_step, iz_step, ix_stop, iy_stop, iz_stop);
+	//if (ix < -50 && oof) {
+	//	oof = 5;
+	//}
+
 	if (!Init_Traverse(ray, ix, iy, iz, dt_x, dt_y, dt_z, t_next_x, t_next_y, t_next_z, ix_step, iy_step, iz_step, ix_stop, iy_stop, iz_stop)) {
 		return false;
 	}
@@ -104,8 +109,8 @@ bool Grid::Traverse(Ray& ray, Object** hitobject, Vector& hitpoint)
 
 	Object* obj, * min_obj;
 	min_obj = NULL;
-	float min_t = FLT_MAX;
 	float cur_t = FLT_MAX;
+	float min_t = FLT_MAX;
 
 	while (1) {
 		cell_index = iz * nx * ny + iy * nx + ix;
