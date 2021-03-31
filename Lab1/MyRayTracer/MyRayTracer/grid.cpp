@@ -1,4 +1,4 @@
-#include "grid.h"
+﻿#include "grid.h"
 #include "maths.h"
 
 Grid::Grid(void)
@@ -37,13 +37,13 @@ void Grid::Build(void)
 	float cubeRoot = powf(num_objects / (size.x * size.y * size.z), 1 / 3);
 
 	// TODO: CHECK THIS
-	nx = m * size.x * cubeRoot;
+	nx = trunc(m * size.x * cubeRoot) + 1;
 	if (nx < 1) nx = 1;
 
-	ny = m * size.y * cubeRoot;
+	ny = trunc(m * size.y * cubeRoot) + 1;
 	if (ny < 1) ny = 1;
 
-	nz = m * size.z * cubeRoot;
+	nz = trunc(m * size.z * cubeRoot) + 1;
 	if (nz < 1) nz = 1;
 
 	int numCells = nx * ny * nz;

@@ -79,13 +79,13 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-bool ANTIALIASING = true;
+bool ANTIALIASING = false;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
 bool SOFT_SHADOWS = false;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 
-bool DEPTH_OF_FIELD = true;
+bool DEPTH_OF_FIELD = false;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
@@ -126,7 +126,7 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 			}
 			break;
 
-		case 1: // Uniform Grid
+		case 3: // Uniform Grid
 			// Traverse Grid
 			if (!uGrid.Traverse(feeler)) {
 				in_shadow = true;
@@ -187,7 +187,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		}
 		break;
 
-	case 1: // Uniform Grid
+	case 3: // Uniform Grid
 		// Traverse Grid
 		if (!uGrid.Traverse(ray, &closest_obj, hit_point)) {
 			closest_obj = NULL;
