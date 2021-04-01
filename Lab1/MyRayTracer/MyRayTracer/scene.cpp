@@ -59,6 +59,11 @@ int Triangle::GetObjectType()
 //
 
 bool Triangle::intercepts(Ray& r, float& t) {
+	if (USE_MAILBOX) {
+		if (mailbox_id >= r.id) return false;
+		mailbox_id = r.id;
+	}
+
 	// https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
 
 	Vector v0 = points[0], v1 = points[1], v2 = points[2];
@@ -157,6 +162,11 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 
 bool Plane::intercepts(Ray& r, float& t)
 {
+	if (USE_MAILBOX) {
+		if (mailbox_id >= r.id) return false;
+		mailbox_id = r.id;
+	}
+
 	float numer = (r.origin - P) * PN;
 	float divid = PN * r.direction;
 
@@ -185,6 +195,11 @@ int Plane::GetObjectType()
 
 bool Sphere::intercepts(Ray& r, float& t)
 {
+	if (USE_MAILBOX) {
+		if (mailbox_id >= r.id) return false;
+		mailbox_id = r.id;
+	}
+
 	// https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
 
 	Vector L = center - r.origin;
@@ -249,6 +264,11 @@ int aaBox::GetObjectType()
 
 bool aaBox::intercepts(Ray& ray, float& t)
 {
+	if (USE_MAILBOX) {
+		if (mailbox_id >= ray.id) return false;
+		mailbox_id = ray.id;
+	}
+
 	float tmin, tmax, tymin, tymax, tzmin, tzmax;
 
 	float a = 1.0f / ray.direction.x;

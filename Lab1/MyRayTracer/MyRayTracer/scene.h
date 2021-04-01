@@ -27,6 +27,8 @@ typedef enum { RIGHT, LEFT, TOP, BOTTOM, FRONT, BACK } CubeMap;
 
 #define EPSILON			0.0001f
 
+#define USE_MAILBOX true // For Uniform Grid Acceleration Structure
+
 
 class Material
 {
@@ -85,6 +87,7 @@ public:
 
 protected:
 	Material* m_Material;
+	int mailbox_id = -1;
 	
 };
 
