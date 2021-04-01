@@ -89,9 +89,10 @@ bool DEPTH_OF_FIELD = false;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+
 Grid uGrid;
 int Ray::next_id = 0;
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 ///////////////////////////////////////////
 
 template<typename Base, typename T>

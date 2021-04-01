@@ -9,6 +9,11 @@ AABB::AABB(void)
 {
 	min = Vector(-1.0f, -1.0f, -1.0f);
 	max = Vector(1.0f, 1.0f, 1.0f);
+	// TODO:
+	// For UGrid the plane's bounding box should extend the entire screen, but since the default constructor
+	// of the Bounding Box only goes from -1 to 1, it doesn't... is there a better way to do this?
+	//min = Vector(-9.0f, -9.0f, -1.0f);
+	//max = Vector(1.5f, 1.5f, 1.0f);
 }
 
 // --------------------------------------------------------------------- constructor
