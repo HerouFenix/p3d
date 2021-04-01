@@ -186,15 +186,20 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				min_dist = cur_dist;
 			}
 		}
+
+		if (closest_obj != NULL) {
+			hit_point = ray.origin + ray.direction * min_dist;
+		}
+
 		break;
 
 	case 1: // Uniform Grid
 
-		// TODO: SOMEWHY, AT SOMEPOINT HIT_POINT DOESNT GET DEFINED AND IT FUCKS EVERYTHING UP...CHECK WHATS WRONG
 		// Traverse Grid
 		if (!uGrid.Traverse(ray, &closest_obj, hit_point)) {
 			closest_obj = NULL;
 		}
+
 		break;
 
 	case 2: // BHV
@@ -220,8 +225,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		else
 			return scene->GetBackgroundColor();
 	}
-
-	hit_point = ray.origin + ray.direction * min_dist;
 
 	// Hitpoint computation with offset (remove Acne)
 	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * .0001;
