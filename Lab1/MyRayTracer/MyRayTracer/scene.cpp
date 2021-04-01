@@ -9,11 +9,17 @@
 
 Triangle::Triangle(Vector& P0, Vector& P1, Vector& P2)
 {
-	// TODO: CHANGE THIS !!!!!!!!!!!!
 	points[0] = P0; points[1] = P1; points[2] = P2;
 
 	/* Calculate the normal */
-	normal = (P1 - P0) % (P2 - P0);
+	Vector V = P1 - P0;
+	Vector W = P2 - P0;
+
+	normal = Vector(0, 0, 0);
+	normal.x = (V.y * W.z) - (V.z * W.y);
+	normal.y = (V.z * W.x) - (V.x * W.z);
+	normal.z = (V.x * W.y) - (V.y * W.x);
+
 	normal.normalize();
 
 	//Calculate the Min and Max for bounding box
@@ -52,111 +58,49 @@ int Triangle::GetObjectType()
 // Ray/Triangle intersection test using Tomas Moller-Ben Trumbore algorithm.
 //
 
-/*
 bool Triangle::intercepts(Ray& r, float& t) {
+	// https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
+
 	Vector v0 = points[0], v1 = points[1], v2 = points[2];
 
-	// compute plane's normal
+	/* Find vectors for two edges sharing v0 */
 	Vector v0v1 = v1 - v0;
 	Vector v0v2 = v2 - v0;
-	// no need to normalize
-	Vector N; // N 
-	N.x = v0v1.y * v0v2.z - v0v1.z * v0v2.y;
-	N.y = v0v1.z * v0v2.x - v0v1.x * v0v2.z;
-	N.z = v0v1.x * v0v2.y - v0v1.y * v0v2.x;
 
-	float area2 = N.x * N.x + N.y * N.y + N.z * N.z;
+	Vector pVec = Vector(0, 0, 0);
+	pVec.x = (r.direction.y * v0v2.z) - (r.direction.z * v0v2.y);
+	pVec.y = (r.direction.z * v0v2.x) - (r.direction.x * v0v2.z);
+	pVec.z = (r.direction.x * v0v2.y) - (r.direction.y * v0v2.x);
+	
+	float det = v0v1 * pVec;
 
-	// Step 1: finding P
+	if (fabs(det) < EPSILON) return false; // ray and triangle are parallel if det is close to 0
 
-	// check if ray and plane are parallel ?
-	float NdotRayDirection = N * r.direction;
-	if (fabs(NdotRayDirection) < .0001f) // almost 0 
-		return false; // they are parallel so they don't intersect ! 
+	/* Calculate distance from v0 to ray origin */
+	Vector tVec = r.origin - v0;
 
-	// compute d parameter using equation 2
-	float d = N * v0;
+	/* Calculate U parameter and test bounds */
+	float u = (tVec * pVec);
+	if (u < 0 || u > det) return false;
 
-	// compute t (equation 3)
-	t = (N * r.origin + d) / NdotRayDirection;
-	// check if the triangle is in behind the ray
-	if (t < 0) return false; // the triangle is behind 
+	Vector qVec = Vector(0, 0, 0);
+	qVec.x = (tVec.y * v0v1.z) - (tVec.z * v0v1.y);
+	qVec.y = (tVec.z * v0v1.x) - (tVec.x * v0v1.z);
+	qVec.z = (tVec.x * v0v1.y) - (tVec.y * v0v1.x);
 
-	// compute the intersection point using equation 1
-	Vector P = r.origin + r.direction * t;
+	/* Calculate V parameter and test bounds */
+	float v = (r.direction * qVec);
+	if (v < 0 || u + v > det) return false;
 
-	// Step 2: inside-outside test
-	Vector C; // vector perpendicular to triangle's plane 
+	/* Calculate t, scale parameters, ray intersects triangle */
+	t = (v0v2 * qVec);
 
-	// edge 0
-	Vector edge0 = v1 - v0;
-	Vector vp0 = P - v0;
-	C.x = edge0.y * vp0.z - edge0.z * vp0.y;
-	C.y = edge0.z * vp0.x - edge0.x * vp0.z;
-	C.z = edge0.x * vp0.y - edge0.y * vp0.x;
-	if (N * C < 0) return false; // P is on the right side 
-
-	// edge 1
-	Vector edge1 = v2 - v1;
-	Vector vp1 = P - v1;
-	C.x = edge1.y * vp1.z - edge1.z * vp1.y;
-	C.y = edge1.z * vp1.x - edge1.x * vp1.z;
-	C.z = edge1.x * vp1.y - edge1.y * vp1.x;
-	if (N * C < 0)  return false; // P is on the right side 
-
-	// edge 2
-	Vector edge2 = v0 - v2;
-	Vector vp2 = P - v2;
-	C.x = edge2.y * vp2.z - edge2.z * vp2.y;
-	C.y = edge2.z * vp2.x - edge2.x * vp2.z;
-	C.z = edge2.x * vp2.y - edge2.y * vp2.x;
-	if (N * C < 0) return false; // P is on the right side; 
-
-	return true; // this ray hits the triangle 
-}
-*/
-
-bool Triangle::intercepts(Ray& r, float& t) {
-	Vector P0 = points[0], P1 = points[1], P2 = points[2];
-
-	float a = P0.x - P1.x, b = P0.x - P2.x, c = r.direction.x, d = P0.x - r.origin.x;
-	float e = P0.y - P1.y, f = P0.y - P2.y, g = r.direction.y, h = P0.y - r.origin.y;
-	float i = P0.z - P1.z, j = P0.z - P2.z, k = r.direction.z, l = P0.z - r.origin.z;
-
-	float m = f * k - g * j, n = h * k - g * l, p = f * l - h * j;
-	float q = g * i - e * k, s = e * j - f * i;
-
-	float inv_denom = 1.0 / (a * m + b * q + c * s);
-
-	float e1 = d * m - b * n - c * p;
-	float beta = e1 * inv_denom;
-
-	if (beta < 0.0) {
-		return (false);
-	}
-
-	float r_ = r_ = e * l - h * i;
-	float e2 = a * n + d * q + c * r_;
-	float gamma = e2 * inv_denom;
-
-	if (gamma < 0.0) {
-		return false;
-	}
-
-	if (beta + gamma > 1.0) {
-		return false;
-	}
-
-	float e3 = a * p - b * r_ + d * s;
-	float t_ = e3 * inv_denom;
-
-	if (t_ < 0.001) {
-		return false;
-	}
-
-	t = t_;
+	float inv_det = 1 / det;
+	t *= inv_det;
 
 	return true;
+
+
 }
 
 Plane::Plane(Vector& a_PN, float a_D)
@@ -216,7 +160,7 @@ bool Plane::intercepts(Ray& r, float& t)
 	float numer = (r.origin - P) * PN;
 	float divid = PN * r.direction;
 
-	if (fabs(divid) < 0.0001) {
+	if (fabs(divid) < EPSILON) {
 		return false;
 	}
 
@@ -226,7 +170,7 @@ bool Plane::intercepts(Ray& r, float& t)
 		return false;
 	}
 
-	return (true);
+	return true;
 }
 
 Vector Plane::getNormal(Vector point)
