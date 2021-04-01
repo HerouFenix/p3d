@@ -36,15 +36,15 @@ void Grid::Build(void)
 	Vector size = max - min;
 	float cubeRoot = powf(num_objects / (size.x * size.y * size.z), 1 / 3);
 
-	// TODO: CHECK THIS
+	// TODO: CHECK THIS -  Somewhy without that + 1 some of the image gets cut..
 	nx = trunc(m * size.x * cubeRoot) + 1;
-	if (nx < 1) nx = 1;
+	//if (nx < 1) nx = 1;
 
 	ny = trunc(m * size.y * cubeRoot) + 1;
-	if (ny < 1) ny = 1;
+	//if (ny < 1) ny = 1;
 
 	nz = trunc(m * size.z * cubeRoot) + 1;
-	if (nz < 1) nz = 1;
+	//if (nz < 1) nz = 1;
 
 	int numCells = nx * ny * nz;
 
@@ -67,10 +67,12 @@ void Grid::Build(void)
 
 		int zmin = clamp(cur_min.z * nz / (max.z - min.z), 0, nz - 1);
 		int zmax = clamp(cur_max.z * nz / (max.z - min.z), 0, nz - 1);
-		int ymin = clamp(cur_min.y * nz / (max.y - min.y), 0, ny - 1);
-		int ymax = clamp(cur_max.y * nz / (max.y - min.y), 0, ny - 1);
-		int xmin = clamp(cur_min.x * nz / (max.x - min.x), 0, nx - 1);
-		int xmax = clamp(cur_max.x * nz / (max.x - min.x), 0, nx - 1);
+		
+		int ymin = clamp(cur_min.y * ny / (max.y - min.y), 0, ny - 1);
+		int ymax = clamp(cur_max.y * ny / (max.y - min.y), 0, ny - 1);
+		
+		int xmin = clamp(cur_min.x * nx / (max.x - min.x), 0, nx - 1);
+		int xmax = clamp(cur_max.x * nx / (max.x - min.x), 0, nx - 1);
 
 
 		// Loop over the cells the box overlaps and insert
@@ -243,7 +245,7 @@ bool Grid::Traverse(Ray& ray)
 Vector Grid::find_min_bounds(void)
 {
 	Vector cur_min;
-	int min_x = FLT_MAX, min_y = FLT_MAX, min_z = FLT_MAX;
+	float min_x = FLT_MAX, min_y = FLT_MAX, min_z = FLT_MAX;
 
 	int objects = getNumObjects();
 
@@ -262,13 +264,13 @@ Vector Grid::find_min_bounds(void)
 		}
 	}
 
-	return Vector(min_x, min_y, min_z);
+	return Vector(min_x - .0001f, min_y - .0001f, min_z - .0001f);
 }
 
 Vector Grid::find_max_bounds(void)
 {
 	Vector cur_max;
-	int max_x = -FLT_MAX, max_y = -FLT_MAX, max_z = -FLT_MAX;
+	float max_x = -FLT_MAX, max_y = -FLT_MAX, max_z = -FLT_MAX;
 
 	int objects = getNumObjects();
 
@@ -287,7 +289,7 @@ Vector Grid::find_max_bounds(void)
 		}
 	}
 
-	return Vector(max_x, max_y, max_z);
+	return Vector(max_x + .0001f, max_y + .0001f, max_z + .0001f);
 }
 
 bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, double& dty, double& dtz, double& tx_next, double& ty_next, double& tz_next, int& ix_step, int& iy_step, int& iz_step, int& ix_stop, int& iy_stop, int& iz_stop)
