@@ -79,17 +79,17 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-bool ANTIALIASING = false;
+bool ANTIALIASING = true;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = false;
+bool SOFT_SHADOWS = true;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 
-bool DEPTH_OF_FIELD = false;
+bool DEPTH_OF_FIELD = true;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -114,7 +114,7 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 		Ray feeler = Ray(hit_point, L); // Ray going from the intersection point pointing to the light
 		bool in_shadow = false;
 
-		// LAB 3: ACCELERATION STRUCTURES //
+		// LAB 4: ACCELERATION STRUCTURES //
 		switch (USE_ACCEL_STRUCT) {
 		case 0: // No acceleration structure
 			// Iterate over all objects to see if any are between the intersection point and the light source
@@ -176,7 +176,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	Vector hit_point;
 
-	// LAB 3: ACCELERATION STRUCTURES //
+	// LAB 4: ACCELERATION STRUCTURES //
 	switch (USE_ACCEL_STRUCT) {
 	case 0: // No acceleration structure
 		//Intersect Ray with all objects and find the closest hit point (if it exists)
@@ -276,11 +276,11 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				}
 			}
 			else {
-				// TODO: FIX THIS
+				// TODO: confirm this
 				// represent the area light as an infinite number of point lights and choose one at random for each primary ray
 				pos = Vector(
-					light->position.x + size * (ray.origin.x + rand_float()) / NO_LIGHTS,
-					light->position.y + size * (ray.origin.y + rand_float()) / NO_LIGHTS,
+					light->position.x + size * rand_float(), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
+					light->position.y + size * rand_float(), // Pick random y within area of light
 					light->position.z);
 				newLight = new Light(pos, light->color);
 
@@ -576,9 +576,9 @@ void renderScene()
 	// Set random seed for this iteration
 	set_rand_seed(time(NULL)); // https://www.cplusplus.com/reference/cstdlib/srand/
 
-	// LAB 3: ACCELERATION STRUCTURES //
+	// LAB 4: ACCELERATION STRUCTURES //
 	if (USE_ACCEL_STRUCT == 1) { // Uniform Grid
-		uGrid = Grid();
+		uGrid = Grid(); // Build Grid
 		for (int i = 0; i < scene->getNumObjects(); i++ ) {
 			uGrid.addObject(scene->getObject(i));
 		}
@@ -603,13 +603,28 @@ void renderScene()
 			if (!ANTIALIASING) {
 				pixel.x = x + 0.5f;
 				pixel.y = y + 0.5f;
+				
+				Ray* ray = nullptr;
 
-				Ray ray = scene->GetCamera()->PrimaryRay(pixel);
-				color = rayTracing(ray, 1, 1.0).clamp();
+				// LAB 3: DEPTH OF FIELD //
+				if (DEPTH_OF_FIELD) {
+					Vector lens;
+					float aperture = scene->GetCamera()->GetAperture();
+
+					// Compute the sample point on the "thin lens" 
+					lens.x = 0.5f * rand_float() * aperture; // TODO: CHECK THIS
+					lens.y = 0.5f * rand_float() * aperture;
+
+					ray = &scene->GetCamera()->PrimaryRay(lens, pixel);
+				}
+				else {
+					ray = &scene->GetCamera()->PrimaryRay(pixel);
+				}
+
+				color = rayTracing(*ray, 1, 1.0).clamp();
 			}
 			else {
 				// LAB 3: ANTIALIASING [JITTER] //
-
 				for (int p = 0; p < SPP; p++) {
 					for (int q = 0; q < SPP; q++) {
 						pixel.x = x + (p + rand_float()) / SPP;
@@ -622,7 +637,7 @@ void renderScene()
 							Vector lens;
 							float aperture = scene->GetCamera()->GetAperture();
 
-							// Compute the sample point on the lens "thin lens"
+							// Compute the sample point on the "thin lens"
 							lens.x = ((p + rand_float()) / SPP) * aperture;
 							lens.y = ((q + rand_float()) / SPP) * aperture;
 

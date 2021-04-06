@@ -95,15 +95,16 @@ public:
 		Vector eye_offset;
 
 		// Compute the point p where the center ray hits the focal plane
-		Vector p(w * (pixel_sample.x / res_x - 0.5f) * focal_ratio, h * (pixel_sample.y / res_y - 0.5f) * focal_ratio,0);
+		//p.x = pixel_point.x * focal plane distance / view plane distance;
+		//p.y = pixel_point.y * focal plane distance / view plane distance;
+
+		// focal ratio = focal plane distance / view plane distance
+		Vector p(w * (pixel_sample.x / res_x - 0.5f) * focal_ratio, h * (pixel_sample.y / res_y - 0.5f) * focal_ratio,0); 
 		
 		// Use p and the sample point on the lens to compute the direction of hte primary ray so that this ray also goes through p
 		
-		Vector vX = u * (p.x - lens_sample.x);
-		Vector vY = v * (p.y - lens_sample.y);
-		Vector vZ = n * -(focal_ratio * plane_dist);
-
-		ray_dir = (vX + vY + vZ).normalize();
+		// dir = (p.x - lens_point.x) * u + (p.y - lens_point.y) * v - f * w
+		ray_dir = (u * (p.x - lens_sample.x) + v * (p.y - lens_sample.y) + n * (-focal_ratio * plane_dist)).normalize();
 		eye_offset = eye + (u * lens_sample.x) + (v * lens_sample.y);
 		
 		return Ray(eye_offset, ray_dir);
