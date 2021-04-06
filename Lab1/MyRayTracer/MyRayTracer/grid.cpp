@@ -36,15 +36,15 @@ void Grid::Build(void)
 	Vector size = max - min;
 	float cubeRoot = powf(num_objects / (size.x * size.y * size.z), 1 / 3);
 
-	// TODO: CHECK THIS -  Somewhy without that + 1 some of the image gets cut..
-	nx = trunc(m * size.x * cubeRoot) + 1;
-	//if (nx < 1) nx = 1;
+	// Compute resolution
+	nx = trunc(m * size.x * cubeRoot);
+	if (nx < 1) nx = 1;
 
-	ny = trunc(m * size.y * cubeRoot) + 1;
-	//if (ny < 1) ny = 1;
+	ny = trunc(m * size.y * cubeRoot);
+	if (ny < 1) ny = 1;
 
-	nz = trunc(m * size.z * cubeRoot) + 1;
-	//if (nz < 1) nz = 1;
+	nz = trunc(m * size.z * cubeRoot);
+	if (nz < 1) nz = 1;
 
 	int numCells = nx * ny * nz;
 
@@ -294,6 +294,8 @@ Vector Grid::find_max_bounds(void)
 
 bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, double& dty, double& dtz, double& tx_next, double& ty_next, double& tz_next, int& ix_step, int& iy_step, int& iz_step, int& ix_stop, int& iy_stop, int& iz_stop)
 {
+	// Used to initialize the parameters (increments per step, minimum, maximum, starting cell, ...) used in the traversal
+
 	// Intersect ray with scene bounding box
 	float tx_min = (bbox.min.x - ray.origin.x) / ray.direction.x;
 	float tx_max = (bbox.max.x - ray.origin.x) / ray.direction.x;
