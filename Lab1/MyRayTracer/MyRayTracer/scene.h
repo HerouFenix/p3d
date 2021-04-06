@@ -84,6 +84,7 @@ public:
 	virtual Vector getNormal( Vector point ) = 0;
 	virtual AABB GetBoundingBox() { return AABB(); }
 	virtual int GetObjectType() { return -1; };
+	virtual Vector getCentroid(void) = 0;
 
 protected:
 	Material* m_Material;
@@ -105,6 +106,8 @@ public:
 		 bool intercepts( Ray& r, float& dist );
          Vector getNormal(Vector point);
 		 int GetObjectType();
+		 Vector getCentroid(void) { return Vector(); }
+		 AABB GetBoundingBox() { return AABB(); }
 };
 
 class Triangle : public Object
@@ -116,6 +119,7 @@ public:
 	Vector getNormal(Vector point);
 	AABB GetBoundingBox(void);
 	int GetObjectType();
+	Vector getCentroid(void) { return GetBoundingBox().centroid(); };
 	
 protected:
 	Vector points[3];
@@ -136,6 +140,18 @@ public:
 	AABB GetBoundingBox(void);
 	int GetObjectType();
 
+	Vector getCentroid(void) {
+		return center;
+	};
+
+	Vector GetCenter() {
+		return center;
+	}
+
+	float GetRadius() {
+		return radius;
+	}
+
 private:
 	Vector center;
 	float radius, SqRadius;
@@ -145,10 +161,11 @@ class aaBox : public Object   //Axis aligned box: another geometric object
 {
 public:
 	aaBox(Vector& minPoint, Vector& maxPoint);
+	Vector getCentroid();
 	AABB GetBoundingBox(void);
+	int GetObjectType();
 	bool intercepts(Ray& r, float& t);
 	Vector getNormal(Vector point);
-	int GetObjectType();
 
 private:
 	Vector min;

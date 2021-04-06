@@ -14,6 +14,12 @@ public:
 	Vector(const Vector& v);
 
 	float length();
+	float sqrdLength();
+
+	float getIndex(int op) {
+		return (op == 0) ? x : (op == 1) ? y : z;
+	}
+
 	Vector&	normalize();
 	Vector operator=(const Vector& v);
 	Vector operator+( const Vector& v );
