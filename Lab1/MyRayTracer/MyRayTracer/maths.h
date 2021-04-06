@@ -67,6 +67,13 @@ rand_float(void) {
 	return((float)rand() / ((float)RAND_MAX+1.0));
 }
 
+// ---------------------------------------------------- rand_float(min, max)
+
+inline float
+rand_float(double min, double max) {
+	return min + (max - min) * rand_float();
+}
+
 
 // ---------------------------------------------------- rand_double
 

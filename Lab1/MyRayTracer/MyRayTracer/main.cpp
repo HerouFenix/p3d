@@ -82,10 +82,13 @@ int WindowHandle = 0;
 bool ANTIALIASING = true;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = true;
+bool SOFT_SHADOWS = false;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 
-bool DEPTH_OF_FIELD = true;
+bool DEPTH_OF_FIELD = false;
+
+bool FUZZY_REFLECTIONS = true;
+float ROUGHNESS = 0.3f;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
@@ -163,6 +166,15 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 			//color = diffuse color + specular color
 			color += (diff * material.GetDiffuse() + spec * material.GetSpecular());
 		}
+	}
+}
+
+
+Vector random_in_unit_sphere() {
+	while (true) {
+		auto p = Vector(rand_float(-1, 1), rand_float(-1, 1), rand_float(-1, 1));
+		if (p.length() >= 1) continue;
+		return p;
 	}
 }
 
@@ -274,18 +286,18 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 					cur_y += dist;
 					cur_x = light->position.x - dist * NO_LIGHTS / 2;
 				}
-			}
+			}																													
 			else {
 				// TODO: confirm this
 				// represent the area light as an infinite number of point lights and choose one at random for each primary ray
+				// Instead of picking randomly, consider that the area of light is also subdivided by the jitter offset
 				pos = Vector(
-					light->position.x + size * rand_float(), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
-					light->position.y + size * rand_float(), // Pick random y within area of light
+					rand_float(light->position.x-size, light->position.x + size), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
+					rand_float(light->position.y - size, light->position.y + size), // Pick random y within area of light
 					light->position.z);
 				newLight = new Light(pos, light->color);
 
 				processLight(*newLight, color, *material, ray, precise_hit_point, normal);
-
 			}
 		}
 		else {
@@ -362,10 +374,16 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		// https://www.scratchapixel.com/code.php?id=3&origin=/lessons/3d-basic-rendering/introduction-to-ray-tracing
 		Vector rDir = ray.direction - normal * 2 * (ray.direction * normal);
 
-		Ray rRay = Ray(precise_hit_point, rDir);
+		// ASSIGNMENT EXTRA - FUZZY REFLECTIONS //
+		https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
+		Ray* rRay = nullptr;
+		if(FUZZY_REFLECTIONS)
+			rRay = &Ray(precise_hit_point, (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize());
+		else
+			rRay = &Ray(precise_hit_point, rDir);
 
 		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1))
-		rColor = rayTracing(rRay, depth + 1, ior_1);
+		rColor = rayTracing(*rRay, depth + 1, ior_1);
 	}
 
 	//	reduce rColor and tColor by the reflection mix value and add to color

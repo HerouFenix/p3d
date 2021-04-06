@@ -335,7 +335,7 @@ bool Grid::Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, doubl
 		iz = clamp((ray.origin.z - bbox.min.z) * nz / (bbox.max.z - bbox.min.z), 0, nz - 1);
 	}
 
-	// DDA Digital Differential Analyser Algorithm - https://www.scratchapixel.com/lessons/advanced-rendering/introduction-acceleration-structure/grid
+	// 3DDDA Digital Differential Analyser Algorithm - https://www.scratchapixel.com/lessons/advanced-rendering/introduction-acceleration-structure/grid
 	if (ray.direction.x < 0) {
 		tx_next = tx_min + (nx - ix) * dtx;
 		ix_step = -1;
