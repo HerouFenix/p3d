@@ -1,5 +1,5 @@
-#include "vector.h"
 #include <cmath>
+#include "vector.h"
 
 Vector::Vector(float a_x, float a_y, float a_z) : x(a_x), y(a_y), z(a_z)
 {
@@ -12,9 +12,8 @@ float Vector::length()
 	return sqrt( x * x + y * y + z * z );
 }
 
-float Vector::sqrdLength()
-{
-	return (x * x + y * y + z * z);
+float Vector::getAxisValue(int axis) {
+	return (axis == 0) ? x : (axis == 1) ? y : z;
 }
 
 // --------------------------------------------------------------------- copy constructor

@@ -21,10 +21,9 @@
 #include <IL/il.h>
 
 #include "scene.h"
-#include "grid.h"
+#include "rayAccelerator.h"
 #include "maths.h"
 #include "sampler.h"
-#include "bvh.cpp"
 
 #define CAPTION "Whitted Ray-Tracer"
 
@@ -88,15 +87,14 @@ int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light
 
 bool DEPTH_OF_FIELD = false;
 
-bool FUZZY_REFLECTIONS = false;
+bool FUZZY_REFLECTIONS = true;
 float ROUGHNESS = 0.3f;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
-BVH bvh;
 int Ray::next_id = 0; // For Mailboxing
 ///////////////////////////////////////////
 
@@ -142,11 +140,6 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 			break;
 
 		case 2: // BHV
-
-			if (bvh.bool_intersect_bvh(feeler)) {
-				in_shadow = true;
-			}
-
 			break;
 
 		default:
@@ -224,11 +217,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		break;
 
 	case 2: // BHV
-
-		if (!bvh.intersect_bvh(ray, &closest_obj, hit_point)) {
-			closest_obj = NULL;
-		}
-
 		break;
 
 	default:
@@ -609,20 +597,17 @@ void renderScene()
 	// LAB 4: ACCELERATION STRUCTURES //
 	if (USE_ACCEL_STRUCT == 1) { // Uniform Grid
 		uGrid = Grid(); // Build Grid
+
+		vector<Object*> objects;
+		
 		for (int i = 0; i < scene->getNumObjects(); i++ ) {
-			uGrid.addObject(scene->getObject(i));
+			objects.push_back(scene->getObject(i));
 		}
 
-		uGrid.Build();
+		uGrid.Build(objects);
 	}
 	else if (USE_ACCEL_STRUCT == 2) { // BVH
-		vector<Object*> objs;
 
-		for (int o = 0; o < scene->getNumObjects(); o++) {
-			objs.push_back(scene->getObject(o));
-		}
-
-		bvh.build(objs);
 	}
 
 

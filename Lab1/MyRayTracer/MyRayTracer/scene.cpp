@@ -253,11 +253,6 @@ aaBox::aaBox(Vector& minPoint, Vector& maxPoint) //Axis aligned Box: another geo
 	this->max = maxPoint;
 }
 
-Vector aaBox::getCentroid()
-{
-	return (max + min) / 2;
-}
-
 AABB aaBox::GetBoundingBox() {
 	return(AABB(min, max));
 }

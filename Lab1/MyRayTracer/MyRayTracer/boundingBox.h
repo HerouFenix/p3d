@@ -1,5 +1,3 @@
-#ifndef AABB_H
-#define AABB_H
 
 #include "vector.h"
 #include "ray.h"
@@ -15,10 +13,9 @@ public:
 	AABB(const AABB& bbox);
 	AABB operator= (const AABB& rhs);
 	
-	bool intercepts(const Ray& r, float& t);	
 	bool isInside(const Vector& p);
+	bool intercepts(const Ray& r, float& t);
 	Vector centroid(void);
 	void extend(AABB box);
-};
 
-#endif
+};
