@@ -17,8 +17,6 @@ public:
 	int getNumObjects();
 	void addObject(Object* o);
 	void setAABB(AABB& bbox_);
-	Vector find_max_bounds();
-	Vector find_min_bounds();
 	Object* getObject(unsigned int index);
 	void Build(vector<Object*>& objs);   // set up grid cells
 	bool Traverse(Ray& ray, Object **hitobject, Vector& hitpoint);  //(const Ray& ray, double& tmin, ShadeRec& sr)
