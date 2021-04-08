@@ -141,6 +141,31 @@ private:
 	float radius, SqRadius;
 };
 
+// EXTRA ASSIGNMENT - MOTION BLUR //
+class MovingSphere : public Object
+{
+public:
+	MovingSphere(Vector& a_center, Vector& b_center, float a_radius, float t0, float t1) :
+		center0(a_center), center1(b_center), SqRadius(a_radius* a_radius),
+		radius(a_radius) {
+		time0 = t0;
+		time1 = t1;
+	};
+
+	bool intercepts(Ray& r, float& t);
+	Vector getNormal(Vector point);
+	AABB GetBoundingBox(void);
+	int GetObjectType();
+	void setCenter(float time);
+
+private:
+	Vector center;
+	Vector center0, center1;
+	float time0, time1;
+	float radius, SqRadius;
+};
+
+
 class aaBox : public Object   //Axis aligned box: another geometric object
 {
 public:

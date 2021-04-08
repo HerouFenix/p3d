@@ -88,8 +88,11 @@ int off_x, off_y; // Used to cause a more even distribution when using soft shad
 
 bool DEPTH_OF_FIELD = true;
 
-bool FUZZY_REFLECTIONS = true;
+bool FUZZY_REFLECTIONS = false;
 float ROUGHNESS = 0.3f;
+
+bool MOTION_BLUR = false;
+float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
@@ -297,7 +300,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				//	light->position.z);
 				pos = Vector(
 					light->position.x + size * (off_x + rand_float()) / SPP,
-					light->position.x + size * (off_y + rand_float()) / SPP,
+					light->position.y + size * (off_y + rand_float()) / SPP,
 					light->position.z
 				);
 				newLight = new Light(pos, light->color);
@@ -594,6 +597,11 @@ void renderScene()
 	if (drawModeEnabled) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		scene->GetCamera()->SetEye(Vector(camX, camY, camZ));  //Camera motion
+
+		// EXTRA ASSIGNMENT - MOTION BLUR //
+		if (MOTION_BLUR) {
+			scene->GetCamera()->SetShutterTime(t0, t1);
+		}
 	}
 
 	// Set random seed for this iteration
@@ -641,10 +649,10 @@ void renderScene()
 					// Compute the sample point on the "thin lens" 
 					lens = sample_unit_disk();
 
-					ray = &scene->GetCamera()->PrimaryRay(lens, pixel);
+					ray = &scene->GetCamera()->PrimaryRay(lens, pixel, MOTION_BLUR);
 				}
 				else {
-					ray = &scene->GetCamera()->PrimaryRay(pixel);
+					ray = &scene->GetCamera()->PrimaryRay(pixel, MOTION_BLUR);
 				}
 
 				color = rayTracing(*ray, 1, 1.0).clamp();
@@ -668,10 +676,10 @@ void renderScene()
 							// Compute the sample point on the "thin lens"
 							lens = sample_unit_disk() * aperture;
 
-							ray = &scene->GetCamera()->PrimaryRay(lens, pixel);
+							ray = &scene->GetCamera()->PrimaryRay(lens, pixel, MOTION_BLUR);
 						}
 						else {
-							ray = &scene->GetCamera()->PrimaryRay(pixel);
+							ray = &scene->GetCamera()->PrimaryRay(pixel, MOTION_BLUR);
 						}
 
 

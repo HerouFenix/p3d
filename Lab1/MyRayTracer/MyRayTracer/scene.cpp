@@ -590,6 +590,18 @@ bool Scene::load_p3f(const char* name)
 				if (material) sphere->SetMaterial(material);
 				this->addObject((Object*)sphere);
 			}
+			else if (cmd == "sm")    //Motion Sphere - EXTRA ASSIGNMENT - MOTION BLUR
+			{
+				Vector center0, center1;
+				float radius;
+				float t0, t1;
+				MovingSphere* movingSphere;
+
+				file >> center0 >> center1 >> radius >> t0 >> t1;
+				movingSphere = new MovingSphere(center0, center1, radius, t0, t1);
+				if (material) movingSphere->SetMaterial(material);
+				this->addObject((Object*)movingSphere);
+			}
 
 			else if (cmd == "box")    //axis aligned box
 			{
@@ -805,4 +817,66 @@ void Scene::create_random_scene() {
 	sphere = new Sphere(Vector(4.0, 1.0, 0.0), 1.0);
 	if (material) sphere->SetMaterial(material);
 	this->addObject((Object*)sphere);
+}
+
+
+// EXTRA ASSIGNMENT - MOTION BLUR //
+bool MovingSphere::intercepts(Ray& r, float& t)
+{
+	if (USE_MAILBOX) {
+		if (mailbox_id >= r.id) return false;
+		mailbox_id = r.id;
+	}
+
+	// https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
+
+	setCenter(r.time);
+	Vector L = center - r.origin;
+	//float a = r.direction * r.direction;
+	float b = L * r.direction;
+	float c = L * L - radius * radius;
+
+	if (c > 0) {
+		if (b < 0) {
+			return false;
+		}
+	}
+
+	float discriminant = (b * b - c);
+
+	if (discriminant < 0) {
+		return false;
+	}
+
+	if (c > 0) {
+		t = b - sqrt(discriminant);
+	}
+	else {
+		t = b + sqrt(discriminant);
+	}
+
+	return true;
+}
+
+Vector MovingSphere::getNormal(Vector point)
+{
+	Vector normal = point - center;
+	return (normal.normalize());
+}
+
+AABB MovingSphere::GetBoundingBox(void)
+{
+	Vector a_min = (center - Vector(radius, radius, radius));
+	Vector a_max = (center + Vector(radius, radius, radius));
+	return(AABB(a_min, a_max));
+}
+
+int MovingSphere::GetObjectType()
+{
+	return 4;
+}
+
+void MovingSphere::setCenter(float time)
+{
+	center = center0 + (center1 - center0) * ((time - time0) / (time1 - time0));
 }
