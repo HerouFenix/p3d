@@ -21,7 +21,7 @@
 #include <IL/il.h>
 
 #include "scene.h"
-#include "grid.h"
+#include "rayAccelerator.h"
 #include "maths.h"
 #include "sampler.h"
 
@@ -82,7 +82,7 @@ int WindowHandle = 0;
 bool ANTIALIASING = true;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = false;
+bool SOFT_SHADOWS = true;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 
 bool DEPTH_OF_FIELD = false;
@@ -92,7 +92,7 @@ float ROUGHNESS = 0.3f;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -597,11 +597,15 @@ void renderScene()
 	// LAB 4: ACCELERATION STRUCTURES //
 	if (USE_ACCEL_STRUCT == 1) { // Uniform Grid
 		uGrid = Grid(); // Build Grid
+
+		vector<Object*> objects;
+		
 		for (int i = 0; i < scene->getNumObjects(); i++ ) {
-			uGrid.addObject(scene->getObject(i));
+			objects.push_back(scene->getObject(i));
+			//uGrid.addObject(scene->getObject(i));
 		}
 
-		uGrid.Build();
+		uGrid.Build(objects);
 	}
 	else if (USE_ACCEL_STRUCT == 2) { // BVH
 

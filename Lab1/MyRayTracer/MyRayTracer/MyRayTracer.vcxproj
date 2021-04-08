@@ -177,6 +177,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="boundingBox.cpp" />
+    <ClCompile Include="bvh.cpp" />
     <ClCompile Include="grid.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sampler.cpp" />
@@ -188,8 +189,10 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="color.h" />
     <ClInclude Include="grid.h" />
+    <ClInclude Include="macros.h" />
     <ClInclude Include="maths.h" />
     <ClInclude Include="ray.h" />
+    <ClInclude Include="rayAccelerator.h" />
     <ClInclude Include="sampler.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="vector.h" />
