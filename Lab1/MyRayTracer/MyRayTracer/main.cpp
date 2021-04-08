@@ -84,15 +84,16 @@ int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each 
 
 bool SOFT_SHADOWS = true;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
+int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
-bool DEPTH_OF_FIELD = false;
+bool DEPTH_OF_FIELD = true;
 
 bool FUZZY_REFLECTIONS = true;
 float ROUGHNESS = 0.3f;
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -288,13 +289,17 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				}
 			}																													
 			else {
-				// TODO: confirm this
 				// represent the area light as an infinite number of point lights and choose one at random for each primary ray
 				// Instead of picking randomly, consider that the area of light is also subdivided by the jitter offset
+				//pos = Vector(
+				//	rand_float(light->position.x-size, light->position.x + size), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
+				//	rand_float(light->position.y - size, light->position.y + size), // Pick random y within area of light
+				//	light->position.z);
 				pos = Vector(
-					rand_float(light->position.x-size, light->position.x + size), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
-					rand_float(light->position.y - size, light->position.y + size), // Pick random y within area of light
-					light->position.z);
+					light->position.x + size * (off_x + rand_float()) / SPP,
+					light->position.x + size * (off_y + rand_float()) / SPP,
+					light->position.z
+				);
 				newLight = new Light(pos, light->color);
 
 				processLight(*newLight, color, *material, ray, precise_hit_point, normal);
@@ -634,8 +639,7 @@ void renderScene()
 					float aperture = scene->GetCamera()->GetAperture();
 
 					// Compute the sample point on the "thin lens" 
-					lens.x = 0.5f * rand_float() * aperture; // TODO: CHECK THIS
-					lens.y = 0.5f * rand_float() * aperture;
+					lens = sample_unit_disk();
 
 					ray = &scene->GetCamera()->PrimaryRay(lens, pixel);
 				}
@@ -649,6 +653,8 @@ void renderScene()
 				// LAB 3: ANTIALIASING [JITTER] //
 				for (int p = 0; p < SPP; p++) {
 					for (int q = 0; q < SPP; q++) {
+						off_x = p;
+						off_y = q;
 						pixel.x = x + (p + rand_float()) / SPP;
 						pixel.y = y + (q + rand_float()) / SPP;
 
@@ -660,8 +666,7 @@ void renderScene()
 							float aperture = scene->GetCamera()->GetAperture();
 
 							// Compute the sample point on the "thin lens"
-							lens.x = ((p + rand_float()) / SPP) * aperture;
-							lens.y = ((q + rand_float()) / SPP) * aperture;
+							lens = sample_unit_disk() * aperture;
 
 							ray = &scene->GetCamera()->PrimaryRay(lens, pixel);
 						}
