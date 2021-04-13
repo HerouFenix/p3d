@@ -52,9 +52,9 @@ long myTime, timebase = 0, frame = 0;
 char s[32];
 
 //Enable OpenGL drawing.  
-bool drawModeEnabled = false;
+bool drawModeEnabled = true;
 
-bool P3F_scene = false; //choose between P3F scene or a built-in random scene
+bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 
 // Points defined by 2 attributes: positions which are stored in vertices array and colors which are stored in colors array
 float* colors;
@@ -252,7 +252,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	}
 
 	// Hitpoint computation with offset (remove Acne)
-	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * .0001;
+	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * EPSILON;
 
 
 	// Compute normal at the hit point
