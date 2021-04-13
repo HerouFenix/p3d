@@ -52,9 +52,9 @@ long myTime, timebase = 0, frame = 0;
 char s[32];
 
 //Enable OpenGL drawing.  
-bool drawModeEnabled = true;
+bool drawModeEnabled = false;
 
-bool P3F_scene = true; //choose between P3F scene or a built-in random scene
+bool P3F_scene = false; //choose between P3F scene or a built-in random scene
 
 // Points defined by 2 attributes: positions which are stored in vertices array and colors which are stored in colors array
 float* colors;
@@ -96,7 +96,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -633,13 +633,15 @@ void renderScene()
 		uGrid.Build(objects);
 	}
 	else if (USE_ACCEL_STRUCT == 2) { // BVH
-		vector<Object*> objs;
+		bvh = BVH(); // Build BVH
 
-		for (int o = 0; o < scene->getNumObjects(); o++) {
-			objs.push_back(scene->getObject(o));
+		vector<Object*> objects;
+
+		for (int i = 0; i < scene->getNumObjects(); i++) {
+			objects.push_back(scene->getObject(i));
 		}
 
-		bvh.Build(objs);
+		bvh.Build(objects);
 	}
 
 
