@@ -37,6 +37,10 @@ public:
      friend inline
   istream&	operator >>	(istream& s, Vector& v)
 	{ return s >> v.x >> v.y >> v.z; }
+
+	float getIndex(int op) {
+		return (op == 0) ? x : (op == 1) ? y : z;
+	}
   
 };
 

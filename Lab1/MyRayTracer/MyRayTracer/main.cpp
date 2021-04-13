@@ -100,6 +100,8 @@ int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
+
+BVH bvh;
 ///////////////////////////////////////////
 
 template<typename Base, typename T>
@@ -144,6 +146,10 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 			break;
 
 		case 2: // BHV
+			// Traverse BVH
+			if (bvh.Traverse(feeler)) {
+				in_shadow = true;
+			}
 			break;
 
 		default:
@@ -221,6 +227,11 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		break;
 
 	case 2: // BHV
+		
+		// Traverse BVH
+		if (!bvh.Traverse(ray, &closest_obj, hit_point)) {
+			closest_obj = NULL;
+		}
 		break;
 
 	default:
@@ -621,7 +632,13 @@ void renderScene()
 		uGrid.Build(objects);
 	}
 	else if (USE_ACCEL_STRUCT == 2) { // BVH
+		vector<Object*> objs;
 
+		for (int o = 0; o < scene->getNumObjects(); o++) {
+			objs.push_back(scene->getObject(o));
+		}
+
+		bvh.Build(objs);
 	}
 
 

@@ -359,6 +359,10 @@ Vector aaBox::getNormal(Vector point)
 	return Normal;
 }
 
+Vector aaBox::getCentroid() {
+	return (max + min) / 2;
+}
+
 Scene::Scene()
 {}
 
