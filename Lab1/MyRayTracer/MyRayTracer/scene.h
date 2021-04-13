@@ -86,6 +86,7 @@ public:
 	virtual Vector getNormal( Vector point ) = 0;
 	virtual AABB GetBoundingBox() { return AABB(); }
 	virtual int GetObjectType() { return -1; };
+	virtual Vector getCentroid(void) = 0;
 
 protected:
 	Material* m_Material;
@@ -106,6 +107,7 @@ public:
 
 		 bool intercepts( Ray& r, float& dist );
          Vector getNormal(Vector point);
+		 Vector getCentroid(void) { return Vector(); }
 		 int GetObjectType();
 };
 
@@ -117,6 +119,9 @@ public:
 	bool intercepts( Ray& r, float& t);
 	Vector getNormal(Vector point);
 	AABB GetBoundingBox(void);
+	Vector getCentroid(void) {
+		return GetBoundingBox().centroid();
+	};
 	int GetObjectType();
 	
 protected:
@@ -136,6 +141,9 @@ public:
 	bool intercepts( Ray& r, float& t);
 	Vector getNormal(Vector point);
 	AABB GetBoundingBox(void);
+	Vector getCentroid(void) {
+		return center;
+	};
 	int GetObjectType();
 
 private:
@@ -157,6 +165,9 @@ public:
 	bool intercepts(Ray& r, float& t);
 	Vector getNormal(Vector point);
 	AABB GetBoundingBox(void);
+	Vector getCentroid(void) {
+		return center;
+	};
 	int GetObjectType();
 	void setCenter(float time);
 
@@ -175,6 +186,8 @@ public:
 	AABB GetBoundingBox(void);
 	bool intercepts(Ray& r, float& t);
 	Vector getNormal(Vector point);
+	Vector getCentroid();
+	Vector currentNode(void) { return Vector(); }
 	int GetObjectType();
 
 private:
@@ -206,6 +219,7 @@ public:
 	Object* getObject( unsigned int index );
 	
 	int getNumLights( );
+	void setLights(vector<Light*> new_lights) { lights = new_lights; }
 	void addLight( Light* l );
 	Light* getLight( unsigned int index );
 
