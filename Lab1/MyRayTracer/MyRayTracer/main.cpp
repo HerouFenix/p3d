@@ -96,7 +96,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -107,13 +107,9 @@ inline bool instanceof(const T*) {
 	return is_base_of<Base, T>::value;
 }
 
-void processLight(Light light, Color& color, Material material, Ray ray, Vector hit_point, Vector normal) {
+void processLight(Vector L, Color& lightColor, Color& color, Material material, Ray ray, Vector hit_point, Vector normal) {
 	Object* obj = NULL;
-	Vector L;
 	float cur_dist = FLT_MAX;
-
-	// Get L - the unit vector from the hit point to the light source
-	L = (light.position - hit_point).normalize();
 
 	// If dot product of L and the normal is bigger than zero
 	if (L * normal > 0) {
@@ -164,8 +160,8 @@ void processLight(Light light, Color& color, Material material, Ray ray, Vector 
 		if (!in_shadow) {
 			Vector H = ((L + (ray.direction * -1))).normalize();
 
-			Color diff = (light.color * material.GetDiffColor()) * (max(0, normal * L));
-			Color spec = (light.color * material.GetSpecColor()) * pow(max(0, H * normal), material.GetShine());
+			Color diff = (lightColor * material.GetDiffColor()) * (max(0, normal * L));
+			Color spec = (lightColor * material.GetSpecColor()) * pow(max(0, H * normal), material.GetShine());
 
 			//color = diffuse color + specular color
 			color += (diff * material.GetDiffuse() + spec * material.GetSpecular());
@@ -263,14 +259,13 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 		// LAB 3: SOFT SHADOWS //
 		if (SOFT_SHADOWS) {
-			Light* newLight = NULL;
 			float size = 0.5f; // size of the light jitter
 
 			if (!ANTIALIASING) { // TODO: CHECK IF COMPUTING THE NEWLIGHT OUTSIDE THE RAYTRACING FUNCTION HAS BETTER PERFORMANCE (pq assim, smpr q formos buscar uma luz tamos a computar a area light toda again, this probably only needs to be done once)
 				// represent the area light as a distributed set of N point lights, each with one Nth of the intensity of the base light
 
 				float dist = size / NO_LIGHTS;
-				// Start at the top left corner of the grid 
+				// Start at the top left corner of the grid
 				float cur_x = light->position.x - dist * NO_LIGHTS / 2;
 				float cur_y = light->position.y - dist * NO_LIGHTS / 2;
 
@@ -281,16 +276,18 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 					// Iterate over each column of the grid
 					for (int x = 0; x < NO_LIGHTS; x++) {
 						pos = Vector(cur_x, cur_y, light->position.z);
-						newLight = new Light(pos, avg_col);
 
-						processLight(*newLight, color, *material, ray, precise_hit_point, normal);
+						// Get L - the unit vector from the hit point to the light source
+						Vector L = (pos - hit_point).normalize();
+
+						processLight(L,avg_col, color, *material, ray, precise_hit_point, normal);
 
 						cur_x += dist; // Move to next column
 					}
 					cur_y += dist;
 					cur_x = light->position.x - dist * NO_LIGHTS / 2;
 				}
-			}																													
+			}
 			else {
 				// represent the area light as an infinite number of point lights and choose one at random for each primary ray
 				// Instead of picking randomly, consider that the area of light is also subdivided by the jitter offset
@@ -303,13 +300,17 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 					light->position.y + size * (off_y + rand_float()) / SPP,
 					light->position.z
 				);
-				newLight = new Light(pos, light->color);
+				
+				// Get L - the unit vector from the hit point to the light source
+				Vector L = (pos - hit_point).normalize();
 
-				processLight(*newLight, color, *material, ray, precise_hit_point, normal);
+				processLight(L,light->color, color, *material, ray, precise_hit_point, normal);
 			}
 		}
 		else {
-			processLight(*light, color, *material, ray, precise_hit_point, normal);
+			// Get L - the unit vector from the hit point to the light source
+			Vector L = (light->position - hit_point).normalize();
+			processLight(L,light->color, color, *material, ray, precise_hit_point, normal);
 		}
 	}
 
@@ -383,9 +384,9 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		Vector rDir = ray.direction - normal * 2 * (ray.direction * normal);
 
 		// ASSIGNMENT EXTRA - FUZZY REFLECTIONS //
-		https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
+	https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
 		Ray* rRay = nullptr;
-		if(FUZZY_REFLECTIONS)
+		if (FUZZY_REFLECTIONS)
 			rRay = &Ray(precise_hit_point, (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize());
 		else
 			rRay = &Ray(precise_hit_point, rDir);
@@ -612,8 +613,8 @@ void renderScene()
 		uGrid = Grid(); // Build Grid
 
 		vector<Object*> objects;
-		
-		for (int i = 0; i < scene->getNumObjects(); i++ ) {
+
+		for (int i = 0; i < scene->getNumObjects(); i++) {
 			objects.push_back(scene->getObject(i));
 			//uGrid.addObject(scene->getObject(i));
 		}
@@ -638,7 +639,7 @@ void renderScene()
 			if (!ANTIALIASING) {
 				pixel.x = x + 0.5f;
 				pixel.y = y + 0.5f;
-				
+
 				Ray* ray = nullptr;
 
 				// LAB 3: DEPTH OF FIELD //

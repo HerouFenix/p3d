@@ -70,6 +70,8 @@ public:
 
 	Light( Vector& pos, Color& col ): position(pos), color(col) {};
 	
+	void setColour(Color& col);
+	void setPosition(Vector& pos);
 	Vector position;
 	Color color;
 };

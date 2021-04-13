@@ -880,3 +880,13 @@ void MovingSphere::setCenter(float time)
 {
 	center = center0 + (center1 - center0) * ((time - time0) / (time1 - time0));
 }
+
+void Light::setColour(Color& col)
+{
+	color = col;
+}
+
+void Light::setPosition(Vector& pos)
+{
+	position = pos;
+}
