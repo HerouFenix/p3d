@@ -231,6 +231,8 @@ bool BVH::Traverse(Ray& ray, Object** hit_obj, Vector& hit_point) {
 bool BVH::Traverse(Ray& ray) {
 
 	float tmp;
+	bool hit = false;
+
 	BVHNode* currentNode = nodes[0];
 
 	if (!currentNode->getAABB().intercepts(ray, tmp)) {
@@ -246,15 +248,16 @@ bool BVH::Traverse(Ray& ray) {
 			bool l_hit = l_node->getAABB().intercepts(ray, l_t);
 			bool r_hit = r_node->getAABB().intercepts(ray, r_t);
 
+			if (l_node->getAABB().isInside(ray.origin)) l_t = 0;
+			if (r_node->getAABB().isInside(ray.origin)) r_t = 0;
+
 			if (l_hit && r_hit) {
 				if (l_t < r_t) {
 					currentNode = l_node;
-					// push l to stack
 					hit_stack.push(StackItem(r_node, r_t));
 				}
 				else {
 					currentNode = r_node;
-					// push l to stack
 					hit_stack.push(StackItem(l_node, l_t));
 				}
 				continue;
@@ -279,17 +282,14 @@ bool BVH::Traverse(Ray& ray) {
 			}
 		}
 
-		bool changed = false;
-
-		while (!hit_stack.empty()) {
+		if (hit_stack.empty()) {
+			return hit;
+		}
+		else {
 			StackItem popped = hit_stack.top();
 			hit_stack.pop();
+
 			currentNode = popped.ptr;
-			changed = true;
 		}
-
-		if (changed) continue;
-
-		if (hit_stack.empty()) { return false; }
 	}
 }

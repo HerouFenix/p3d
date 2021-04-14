@@ -52,7 +52,7 @@ long myTime, timebase = 0, frame = 0;
 char s[32];
 
 //Enable OpenGL drawing.  
-bool drawModeEnabled = true;
+bool drawModeEnabled = false;
 
 bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 
@@ -79,14 +79,14 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-bool ANTIALIASING = false;
+bool ANTIALIASING = true;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = false;
+bool SOFT_SHADOWS = true;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
-bool DEPTH_OF_FIELD = false;
+bool DEPTH_OF_FIELD = true;
 
 bool FUZZY_REFLECTIONS = false;
 float ROUGHNESS = 0.3f;
@@ -141,7 +141,7 @@ void processLight(Vector L, Color& lightColor, Color& color, Material material, 
 			}
 			break;
 
-		case 2: // BHV
+		case 2: // BVH
 			// Traverse BVH
 			if (bvh.Traverse(feeler)) {
 				in_shadow = true;

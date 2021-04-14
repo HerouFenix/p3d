@@ -65,48 +65,48 @@ bool Triangle::intercepts(Ray& r, float& t) {
 	}
 
 	// https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
+	// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
 	Vector v0 = points[0], v1 = points[1], v2 = points[2];
 
-	/* Find vectors for two edges sharing v0 */
-	Vector v0v1 = v1 - v0;
-	Vector v0v2 = v2 - v0;
+	// Find vectors for two edges sharing v0 
+	Vector edge1 = v1 - v0;
+	Vector edge2 = v2 - v0;
 
 	Vector pVec = Vector(0, 0, 0);
-	pVec.x = (r.direction.y * v0v2.z) - (r.direction.z * v0v2.y);
-	pVec.y = (r.direction.z * v0v2.x) - (r.direction.x * v0v2.z);
-	pVec.z = (r.direction.x * v0v2.y) - (r.direction.y * v0v2.x);
+	pVec.x = (r.direction.y * edge2.z) - (r.direction.z * edge2.y);
+	pVec.y = (r.direction.z * edge2.x) - (r.direction.x * edge2.z);
+	pVec.z = (r.direction.x * edge2.y) - (r.direction.y * edge2.x);
 	
-	float det = v0v1 * pVec;
+	float det = edge1 * pVec;
 
-	if (fabs(det) < EPSILON) return false; // ray and triangle are parallel if det is close to 0
+	if (det > -0.0000001f && det < 0.0000001f) return false; // ray and triangle are parallel if det is close to 0
+	
+	float inv_det = 1.0f / det;
 
-	/* Calculate distance from v0 to ray origin */
+	// Calculate distance from v0 to ray origin
 	Vector tVec = r.origin - v0;
-
-	/* Calculate U parameter and test bounds */
-	float u = (tVec * pVec);
-	if (u < 0 || u > det) return false;
-
+	
+	// Calculate U parameter and test bounds 
+	float u = inv_det * (tVec * pVec);
+	if (u < 0.0f || u > 1.0f) return false;
+	
 	Vector qVec = Vector(0, 0, 0);
-	qVec.x = (tVec.y * v0v1.z) - (tVec.z * v0v1.y);
-	qVec.y = (tVec.z * v0v1.x) - (tVec.x * v0v1.z);
-	qVec.z = (tVec.x * v0v1.y) - (tVec.y * v0v1.x);
-
-	/* Calculate V parameter and test bounds */
-	float v = (r.direction * qVec);
-	if (v < 0 || u + v > det) return false;
-
-	/* Calculate t, scale parameters, ray intersects triangle */
-	t = (v0v2 * qVec);
-
-	float inv_det = 1 / det;
-	t *= inv_det;
-
-	return true;
-
-
+	qVec.x = (tVec.y * edge1.z) - (tVec.z * edge1.y);
+	qVec.y = (tVec.z * edge1.x) - (tVec.x * edge1.z);
+	qVec.z = (tVec.x * edge1.y) - (tVec.y * edge1.x);
+	
+	// Calculate V parameter and test bounds
+	float v = inv_det * (r.direction * qVec);
+	if (v < 0.0f || u + v > 1.0f) return false;
+	
+	// Calculate t, scale parameters, ray intersects triangle
+	t = inv_det * (edge2 * qVec);
+	if (t > 0.0000001f) return true;
+	
+	return false;
 }
+
 
 Plane::Plane(Vector& a_PN, float a_D)
 	: PN(a_PN), D(a_D)
