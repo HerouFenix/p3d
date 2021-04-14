@@ -79,14 +79,14 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-bool ANTIALIASING = true;
+bool ANTIALIASING = false;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = true;
+bool SOFT_SHADOWS = false;
 int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
-bool DEPTH_OF_FIELD = true;
+bool DEPTH_OF_FIELD = false;
 
 bool FUZZY_REFLECTIONS = false;
 float ROUGHNESS = 0.3f;
@@ -96,7 +96,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 0; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -223,7 +223,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		break;
 
 	case 2: // BHV
-		
+
 		// Traverse BVH
 		if (!bvh.Traverse(ray, &closest_obj, hit_point)) {
 			closest_obj = NULL;
@@ -291,7 +291,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 						// Get L - the unit vector from the hit point to the light source
 						Vector L = (pos - hit_point).normalize();
 
-						processLight(L,avg_col, color, *material, ray, precise_hit_point, normal);
+						processLight(L, avg_col, color, *material, ray, precise_hit_point, normal);
 
 						cur_x += dist; // Move to next column
 					}
@@ -303,25 +303,31 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				// represent the area light as an infinite number of point lights and choose one at random for each primary ray
 				// Instead of picking randomly, consider that the area of light is also subdivided by the jitter offset
 				//pos = Vector(
-				//	rand_float(light->position.x-size, light->position.x + size), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
-				//	rand_float(light->position.y - size, light->position.y + size), // Pick random y within area of light
+				//	rand_float(light->position.x-size/2, light->position.x + size/2), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size.
+				//	rand_float(light->position.y - size/2, light->position.y + size/2), // Pick random y within area of light
 				//	light->position.z);
+
+				//pos = Vector(
+				//		rand_float(light->position.x- size/2 * off_x / SPP, light->position.x + size/2 * off_x / SPP), // Pick random x within area of light -> x + size goes to max right of area * rand float divides by number to pick any position from x to x+size. add offset
+				//		rand_float(light->position.y - size/2 * off_y / SPP, light->position.y + size/2 * off_y / SPP), // Pick random y within area of light
+				//		light->position.z);
+
 				pos = Vector(
-					light->position.x + size * (off_x + rand_float()) / SPP,
-					light->position.y + size * (off_y + rand_float()) / SPP,
-					light->position.z
-				);
-				
+					light->position.x + size * (off_x + rand_float()) / SPP, // Pick random x within area of light -> using the same formula we use when creating a pixel sample (pixel.x = x + (p + rand_float()) / SPP;) but taking the light jitter size into account (size)
+					light->position.y + size * (off_y + rand_float()) / SPP, // Pick random y within area of light
+					light->position.z);
+
+
 				// Get L - the unit vector from the hit point to the light source
 				Vector L = (pos - hit_point).normalize();
 
-				processLight(L,light->color, color, *material, ray, precise_hit_point, normal);
+				processLight(L, light->color, color, *material, ray, precise_hit_point, normal);
 			}
 		}
 		else {
 			// Get L - the unit vector from the hit point to the light source
 			Vector L = (light->position - hit_point).normalize();
-			processLight(L,light->color, color, *material, ray, precise_hit_point, normal);
+			processLight(L, light->color, color, *material, ray, precise_hit_point, normal);
 		}
 	}
 
@@ -667,7 +673,7 @@ void renderScene()
 					float aperture = scene->GetCamera()->GetAperture();
 
 					// Compute the sample point on the "thin lens" 
-					lens = sample_unit_disk();
+					lens = sample_unit_disk() * aperture;
 
 					ray = &scene->GetCamera()->PrimaryRay(lens, pixel, MOTION_BLUR);
 				}
