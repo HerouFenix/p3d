@@ -44,7 +44,6 @@ void Grid::Build(vector<Object*>& objs) {
 		AABB o_bbox = obj->GetBoundingBox();
 		grid_bbox.extend(o_bbox);
 		this->addObject(obj);
-		objects.push_back(obj);
 	}
 	//slightly enlarge the grid box just for case
 	grid_bbox.min.x -= EPSILON; grid_bbox.min.y -= EPSILON; grid_bbox.min.z -= EPSILON;
@@ -265,6 +264,7 @@ bool Grid::Traverse(Ray& ray, Object** hitobject, Vector& hitpoint) {
 	while (true) {
 		objs = cells[ix + nx * iy + nx * ny * iz];
 
+		//closestDistance = FLT_MAX;
 		if (objs.size() != 0)
 			for (auto obj : objs) //intersect Ray with all objects and find the closest hit point(if any)
 				if (obj->intercepts(ray, distance) && distance < closestDistance) {
