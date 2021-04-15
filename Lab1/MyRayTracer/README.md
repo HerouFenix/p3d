@@ -2,8 +2,6 @@
 
 # P3D Assignment 1 - MyRayTracer
 
-This report has been made in accordance to the guidelines provided for the IAJ's (Inteligência Artificial para Jogos) third project.
-
 ### Authors
 -   **Diogo Silva** - [HerouFenix](https://github.com/HerouFenix)
 -   **Daniel Gonçalves** - [4nd3l1](https://github.com/4nd3l1)
