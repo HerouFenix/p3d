@@ -80,10 +80,10 @@ int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
 bool ANTIALIASING = true;
-int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
+int SPP = 1; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
 bool SOFT_SHADOWS = true;
-int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
+int NO_LIGHTS = 1; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
 bool DEPTH_OF_FIELD = true;
@@ -96,7 +96,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
