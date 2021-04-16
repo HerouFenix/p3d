@@ -25,7 +25,7 @@ using namespace std;
 typedef enum { RIGHT, LEFT, TOP, BOTTOM, FRONT, BACK } CubeMap;
 
 
-#define EPSILON			0.01f
+#define EPSILON			0.0001f
 
 #define USE_MAILBOX true // For Uniform Grid Acceleration Structure
 

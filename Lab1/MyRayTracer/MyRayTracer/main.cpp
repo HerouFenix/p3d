@@ -79,7 +79,7 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-float SHADOW_BIAS = 0.01f;
+float SHADOW_BIAS = 0.0001f;
 
 bool ANTIALIASING = false;
 int SPP = 1; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
@@ -263,7 +263,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	Light* light = NULL;
 	Vector L;
 	Material* material = closest_obj->GetMaterial();
-	int objType = closest_obj->GetObjectType(); // Get the closest object type (for DEBUGING purposes)
+	//int objType = closest_obj->GetObjectType(); // Get the closest object type (for DEBUGING purposes)
 
 	// For each light source
 	for (int i = 0; i < scene->getNumLights(); i++) {

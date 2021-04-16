@@ -77,33 +77,33 @@ bool Triangle::intercepts(Ray& r, float& t) {
 	pVec.x = (r.direction.y * edge2.z) - (r.direction.z * edge2.y);
 	pVec.y = (r.direction.z * edge2.x) - (r.direction.x * edge2.z);
 	pVec.z = (r.direction.x * edge2.y) - (r.direction.y * edge2.x);
-	
+
 	float det = edge1 * pVec;
 
 	if (det > -0.0000001f && det < 0.0000001f) return false; // ray and triangle are parallel if det is close to 0
-	
+
 	float inv_det = 1.0f / det;
 
 	// Calculate distance from v0 to ray origin
 	Vector tVec = r.origin - v0;
-	
+
 	// Calculate U parameter and test bounds 
 	float u = inv_det * (tVec * pVec);
 	if (u < 0.0f || u > 1.0f) return false;
-	
+
 	Vector qVec = Vector(0, 0, 0);
 	qVec.x = (tVec.y * edge1.z) - (tVec.z * edge1.y);
 	qVec.y = (tVec.z * edge1.x) - (tVec.x * edge1.z);
 	qVec.z = (tVec.x * edge1.y) - (tVec.y * edge1.x);
-	
+
 	// Calculate V parameter and test bounds
 	float v = inv_det * (r.direction * qVec);
 	if (v < 0.0f || u + v > 1.0f) return false;
-	
+
 	// Calculate t, scale parameters, ray intersects triangle
 	t = inv_det * (edge2 * qVec);
 	if (t > 0.0000001f) return true;
-	
+
 	return false;
 }
 
@@ -142,7 +142,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 	Vector b = P0 - P1;
 
 	PN = a % b;
-	
+
 	if ((l = PN.length()) == 0.0)
 	{
 		cerr << "DEGENERATED PLANE!\n";
@@ -264,98 +264,136 @@ int aaBox::GetObjectType()
 
 bool aaBox::intercepts(Ray& ray, float& t)
 {
-	if (USE_MAILBOX) {
-		if (mailbox_id > ray.id) return false;
-		mailbox_id = ray.id;
-	}
+	// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
+	// Slides
 
-	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+	Vector tMin, tMax;
+	float tIn, tOut;
 
 	float a = 1.0f / ray.direction.x;
 	if (a >= 0) {
-		tmin = (min.x - ray.origin.x) * a;
-		tmax = (max.x - ray.origin.x) * a;
+		tMin.x = (min.x - ray.origin.x) * a;
+		tMax.x = (max.x - ray.origin.x) * a;
 	}
 	else {
-		tmin = (max.x - ray.origin.x) * a;
-		tmax = (min.x - ray.origin.x) * a;
+		tMin.x = (max.x - ray.origin.x) * a;
+		tMax.x = (min.x - ray.origin.x) * a;
 	}
 
 	float b = 1.0f / ray.direction.y;
 	if (b >= 0) {
-		tymin = (min.y - ray.origin.y) * b;
-		tymax = (max.y - ray.origin.y) * b;
+		tMin.y = (min.y - ray.origin.y) * b;
+		tMax.y = (max.y - ray.origin.y) * b;
 	}
 	else {
-		tymin = (max.y - ray.origin.y) * b;
-		tymax = (min.y - ray.origin.y) * b;
+		tMin.y = (max.y - ray.origin.y) * b;
+		tMax.y = (min.y - ray.origin.y) * b;
 	}
-
-
-	if ((tmin > tymax) || (tymin > tmax))
-		return false;
-
-	if (tymin > tmin)
-		tmin = tymin;
-	if (tymax < tmax)
-		tmax = tymax;
-
 
 	float c = 1.0f / ray.direction.z;
 	if (c >= 0) {
-		tzmin = (min.z - ray.origin.z) * c;
-		tzmax = (max.z - ray.origin.z) * c;
+		tMin.z = (min.z - ray.origin.z) * c;
+		tMax.z = (max.z - ray.origin.z) * c;
 	}
 	else {
-		tzmin = (max.z - ray.origin.z) * c;
-		tzmax = (min.z - ray.origin.z) * c;
-	}
-	
-	if ((tmin > tzmax) || (tzmin > tmax))
-		return false;
-
-	if (tzmin > tmin)
-		tmin = tzmin;
-	if (tzmax < tmax)
-		tmax = tzmax;
-
-	t = tmin;
-
-	if (t < 0) {
-		if (tmax < 0) return false;
-		t = tmax;
+		tMin.z = (max.z - ray.origin.z) * c;
+		tMax.z = (min.z - ray.origin.z) * c;
 	}
 
-	return true;
+	Vector face_in;
+	Vector face_out;
+
+	//tIn = MAX3(tMin.x, tMin.y, tMin.z);
+	if (tMin.x > tMin.y)
+	{
+		tIn = tMin.x;
+		face_in = (a >= 0) ? Vector(-1, 0, 0) : Vector(1, 0, 0);
+	}
+
+	else
+	{
+		tIn = tMin.y;
+		face_in = (b >= 0) ? Vector(0, -1, 0) : Vector(0, 1, 0);
+	}
+
+	if (tMin.z > tIn)
+	{
+		tIn = tMin.z;
+		face_in = (c >= 0) ? Vector(0, 0, -1) : Vector(0, 0, 1);
+	}
+
+
+
+	//tOut = MIN3(tMax.x, tMax.y, tMax.z);
+	if (tMax.x < tMax.y)
+	{
+		tOut = tMax.x;
+		face_out = (a >= 0) ? Vector(1, 0, 0) : Vector(-1, 0, 0);
+	}
+
+	else
+	{
+		tOut = tMax.y;
+		face_out = (b >= 0) ? Vector(0, 1, 0) : Vector(0, -1, 0);
+	}
+
+	if (tMax.z < tOut)
+	{
+		tOut = tMax.z;
+		face_out = (c >= 0) ? Vector(0, 0, 1) : Vector(0, 0, -1);
+	}
+
+	if (tIn < tOut && tOut > EPSILON)
+	{
+		if (tIn > 0)
+		{
+			t = tIn;
+			Normal = face_in;
+		}
+
+		else
+		{
+			t = tOut;
+			Normal = face_out;
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 Vector aaBox::getNormal(Vector point)
 {
-	Vector center = (max + min) / 2;
-	Vector co = point - center;
-	int dir; 
+	/*
+	Vector center = (max + min) / 2.0f;
+	Vector edge = point - center;
+	int axis;
 
-	if (fabs(co.x) > fabs(co.y)) {
-		if (fabs(co.z) > fabs(co.x)) {
-			if (co.z >= 0) Normal = Vector(0, 0, 1);
-			else Normal = Vector(0, 0, -1);
-		}
-		else {
-			if (co.x >= 0) Normal = Vector(1, 0, 0);
-			else Normal = Vector(-1, 0, 0);
-		}
+	// Find the axis 
+	if (fabs(edge.x) < fabs(edge.y) && fabs(edge.x) < fabs(edge.z)) {
+		axis = 0;
+	}
+	else if (fabs(edge.y) < fabs(edge.x) && fabs(edge.y) < fabs(edge.z)) {
+		axis = 1;
 	}
 	else {
-		if (fabs(co.z) > fabs(co.y)) {
-			if (co.z >= 0) Normal = Vector(0, 0, 1);
-			else Normal = Vector(0, 0, -1);
-		}
-		else {
-			if (co.y >= 0) Normal = Vector(0, 1, 0);
-			else Normal = Vector(0, -1, 0);
-		}
+		axis = 2;
 	}
 
+	switch (axis)
+	{
+	case 0: // X Axis
+		edge.x >= 0 ? Normal = Vector(1, 0, 0) : Normal = Vector(-1, 0, 0);
+		break;
+	case 1:
+		edge.y >= 0 ? Normal = Vector(0, 1, 0) : Normal = Vector(0, -1, 0);
+		break;
+	case 2:
+		edge.z >= 0 ? Normal = Vector(0, 0, 1) : Normal = Vector(0, 0, -1);
+		break;
+	}
+	*/
 	return Normal;
 }
 
