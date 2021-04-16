@@ -60,7 +60,7 @@ int Triangle::GetObjectType()
 
 bool Triangle::intercepts(Ray& r, float& t) {
 	if (USE_MAILBOX) {
-		if (mailbox_id >= r.id) return false;
+		if (mailbox_id > r.id) return false;
 		mailbox_id = r.id;
 	}
 
@@ -163,7 +163,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 bool Plane::intercepts(Ray& r, float& t)
 {
 	if (USE_MAILBOX) {
-		if (mailbox_id >= r.id) return false;
+		if (mailbox_id > r.id) return false;
 		mailbox_id = r.id;
 	}
 
@@ -196,7 +196,7 @@ int Plane::GetObjectType()
 bool Sphere::intercepts(Ray& r, float& t)
 {
 	if (USE_MAILBOX) {
-		if (mailbox_id >= r.id) return false;
+		if (mailbox_id > r.id) return false;
 		mailbox_id = r.id;
 	}
 
@@ -265,7 +265,7 @@ int aaBox::GetObjectType()
 bool aaBox::intercepts(Ray& ray, float& t)
 {
 	if (USE_MAILBOX) {
-		if (mailbox_id >= ray.id) return false;
+		if (mailbox_id > ray.id) return false;
 		mailbox_id = ray.id;
 	}
 
@@ -828,7 +828,7 @@ void Scene::create_random_scene() {
 bool MovingSphere::intercepts(Ray& r, float& t)
 {
 	if (USE_MAILBOX) {
-		if (mailbox_id >= r.id) return false;
+		if (mailbox_id > r.id) return false;
 		mailbox_id = r.id;
 	}
 

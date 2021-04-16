@@ -9,12 +9,13 @@
 
 ## Installation & Usage
 The project has been built as a VSStudio solution. As such, to compile and run the program one must simply:
-
- 1. Open the solution by double clicking on **MyRayTracer.sln** (make sure you have VSStudio installed).
- 2. Within VSStudio, on the Solution Explorer tab, navigate to the **MyRayTracer** project
- 3. Select **x64** on the platform (top bar) and **Release**
- 4. Right click on the **MyRayTracer** project and select *Build*
- 5. Finally, start the program by clicking on *Local Windows Debugger* on the top bar (Play)
+ 
+ 1. In the MyRayTracer folder, double click "Dependencies.exe"
+ 2. Open the solution by double clicking on **MyRayTracer.sln** (make sure you have VSStudio installed).
+ 3. Within VSStudio, on the Solution Explorer tab, navigate to the **MyRayTracer** project
+ 4. Select **x64** on the platform (top bar) and **Release**
+ 5. Right click on the **MyRayTracer** project and select *Build*
+ 6. Finally, start the program by clicking on *Local Windows Debugger* on the top bar (Play)
 
 
 ## Options

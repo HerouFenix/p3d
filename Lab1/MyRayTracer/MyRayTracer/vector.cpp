@@ -9,7 +9,7 @@ Vector::Vector(float a_x, float a_y, float a_z) : x(a_x), y(a_y), z(a_z)
 
 float Vector::length()
 {
-	return sqrt( x * x + y * y + z * z );
+	return sqrt(x * x + y * y + z * z);
 }
 
 float Vector::getAxisValue(int axis) {
@@ -32,21 +32,21 @@ Vector Vector::operator= (const Vector& rhs) {
 	return (*this);
 }
 
-Vector Vector::operator+(const  Vector& v )
+Vector Vector::operator+(const  Vector& v)
 {
-	return Vector( x + v.x, y + v.y, z + v.z );
+	return Vector(x + v.x, y + v.y, z + v.z);
 }
 
 
-Vector Vector::operator-(const Vector& v )
+Vector Vector::operator-(const Vector& v)
 {
-	return Vector( x - v.x, y - v.y, z - v.z );
+	return Vector(x - v.x, y - v.y, z - v.z);
 }
 
 
-Vector Vector::operator*( float f )
+Vector Vector::operator*(float f)
 {
-	return Vector( x * f, y * f, z * f );
+	return Vector(x * f, y * f, z * f);
 }
 
 float Vector::operator*(const  Vector& v)
@@ -54,31 +54,39 @@ float Vector::operator*(const  Vector& v)
 	return x * v.x + y * v.y + z * v.z;
 }
 
-Vector Vector::operator/( float f )
+Vector Vector::operator/(float f)
 {
-	return Vector( x / f, y / f, z / f );
+	return Vector(x / f, y / f, z / f);
 }
 
-Vector&	Vector::normalize	()
+Vector& Vector::normalize()
 {
-				   float l=1.0/this->length();
-				   x *= l; y *= l; z *= l;
-				   return *this;
+	float l = 1.0 / this->length();
+	x *= l; y *= l; z *= l;
+	return *this;
 }
 
-Vector&	Vector::operator-=(const Vector& v)
-{ x-=v.x; y-=v.y; z-=v.z; return *this; }
+Vector& Vector::operator-=(const Vector& v)
+{
+	x -= v.x; y -= v.y; z -= v.z; return *this;
+}
 
-Vector&	Vector::operator-=(const float v)
-{ x-=v; y-=v; z-=v; return *this; }
+Vector& Vector::operator-=(const float v)
+{
+	x -= v; y -= v; z -= v; return *this;
+}
 
-Vector&	Vector::operator+=(const float v)
-{ x+=v; y+=v; z+=v; return *this; }
+Vector& Vector::operator+=(const float v)
+{
+	x += v; y += v; z += v; return *this;
+}
 
-Vector&	Vector::operator*=(const float v)
-{ x*=v; y*=v; z*=v; return *this; }
+Vector& Vector::operator*=(const float v)
+{
+	x *= v; y *= v; z *= v; return *this;
+}
 
-Vector Vector::operator%( const Vector& v)
+Vector Vector::operator%(const Vector& v)
 {
 	float uX = x;
 	float uY = y;
@@ -92,5 +100,5 @@ Vector Vector::operator%( const Vector& v)
 	float sY = uZ * vX - uX * vZ;
 	float sZ = uX * vY - uY * vX;
 
-	return Vector( sX, sY, sZ );
+	return Vector(sX, sY, sZ);
 }

@@ -79,14 +79,16 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-bool ANTIALIASING = true;
+float SHADOW_BIAS = 0.01f;
+
+bool ANTIALIASING = false;
 int SPP = 1; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = true;
+bool SOFT_SHADOWS = false;
 int NO_LIGHTS = 1; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
-bool DEPTH_OF_FIELD = true;
+bool DEPTH_OF_FIELD = false;
 
 bool FUZZY_REFLECTIONS = false;
 float ROUGHNESS = 0.3f;
@@ -96,7 +98,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -252,7 +254,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	}
 
 	// Hitpoint computation with offset (remove Acne)
-	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * EPSILON;
+	Vector precise_hit_point = hit_point + closest_obj->getNormal(hit_point) * SHADOW_BIAS;
 
 
 	// Compute normal at the hit point

@@ -5,7 +5,6 @@
 #include <queue>
 #include <cmath>
 #include "scene.h"
-#include "maths.h"
 
 using namespace std;
 
@@ -19,18 +18,18 @@ public:
 	void setAABB(AABB& bbox_);
 	Object* getObject(unsigned int index);
 	void Build(vector<Object*>& objs);   // set up grid cells
-	bool Traverse(Ray& ray, Object **hitobject, Vector& hitpoint);  //(const Ray& ray, double& tmin, ShadeRec& sr)
+	bool Traverse(Ray& ray, Object** hitobject, Vector& hitpoint);  //(const Ray& ray, double& tmin, ShadeRec& sr)
 	bool Traverse(Ray& ray);  //Traverse for shadow ray
 
 private:
-	vector<Object *> objects;
+	vector<Object*> objects;
 	vector<vector<Object*> > cells;
 
 	int nx, ny, nz; // number of cells in the x, y, and z directions
 	float m = 2.0f; // factor that allows to vary the number of cells
 
 	//Setup function for Grid traversal
-	bool Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, double& dty, double& dtz, double& tx_next, double& ty_next, double& tz_next, 
+	bool Init_Traverse(Ray& ray, int& ix, int& iy, int& iz, double& dtx, double& dty, double& dtz, double& tx_next, double& ty_next, double& tz_next,
 		int& ix_step, int& iy_step, int& iz_step, int& ix_stop, int& iy_stop, int& iz_stop);
 
 	AABB bbox;
@@ -81,7 +80,6 @@ private:
 	};
 
 	stack<StackItem> hit_stack;
-
 	int binary_search_split_index(int left_index, int right_index, float mid_coord, int axis);
 
 public:
