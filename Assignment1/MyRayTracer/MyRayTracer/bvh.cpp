@@ -19,8 +19,6 @@ void BVH::BVHNode::makeNode(unsigned int left_index_) {
 	//this->n_objs = n_objs_; 
 }
 
-
-
 int BVH::binary_search_split_index(int left_index, int right_index, float mid_coord, int axis)
 {
 	// Use binary search to find the half in which the mid is located (so we don't have to iterate over the entire objects array)
@@ -159,15 +157,13 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode* node) {
 				break;
 			}
 
-			split_index = start;
+			//split_index = start; // -> somewhy doing just this causes an overflow on balls_high and balls_medium!? no clue..
 
-			/*
 			for (split_index = start; split_index < end; split_index++) {
 				if (objects[split_index]->getCentroid().getIndex(axis) > mid_coord) {
 					break;
 				}
 			}
-			*/
 
 		}
 		//////////////////////////////////////
