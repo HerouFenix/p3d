@@ -1,4 +1,4 @@
-#define EPSILON			0.0001f
+#define EPSILON			0.001f
 
 #define MIN(a, b)		( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define MAX(a, b)		( ( a ) > ( b ) ? ( a ) : ( b ) )

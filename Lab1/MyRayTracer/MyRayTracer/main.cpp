@@ -79,13 +79,13 @@ int RES_X, RES_Y;
 int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
-float SHADOW_BIAS = 0.0001f;
+float SHADOW_BIAS = 0.001f;
 
 bool ANTIALIASING = false;
-int SPP = 1; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
+int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
 bool SOFT_SHADOWS = false;
-int NO_LIGHTS = 1; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
+int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
 int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
 bool DEPTH_OF_FIELD = false;
@@ -98,7 +98,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -119,16 +119,21 @@ void processLight(Vector L, Color& lightColor, Color& color, Material material, 
 	if (L * normal > 0) {
 		// Check if point is NOT in shadow
 		Ray feeler = Ray(hit_point, L); // Ray going from the intersection point pointing to the light
-		bool in_shadow = false;
+		double length;
 
+		bool in_shadow = false;
+		
 		// LAB 4: ACCELERATION STRUCTURES //
 		switch (USE_ACCEL_STRUCT) {
 		case 0: // No acceleration structure
+			length = feeler.direction.length(); //distance between light and intersection point
+			feeler.direction.normalize();
+
 			// Iterate over all objects to see if any are between the intersection point and the light source
 			for (int j = 0; j < scene->getNumObjects(); j++) {
 				obj = scene->getObject(j);
 
-				if (obj->intercepts(feeler, cur_dist)) {
+				if (obj->intercepts(feeler, cur_dist) && cur_dist < length) {
 
 					in_shadow = true;
 					break;
@@ -166,6 +171,8 @@ void processLight(Vector L, Color& lightColor, Color& color, Material material, 
 
 		// If point not in shadow
 		if (!in_shadow) {
+			L = L.normalize();
+
 			Vector H = ((L + (ray.direction * -1))).normalize();
 
 			Color diff = (lightColor * material.GetDiffColor()) * (max(0, normal * L));
@@ -291,7 +298,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 						pos = Vector(cur_x, cur_y, light->position.z);
 
 						// Get L - the unit vector from the hit point to the light source
-						Vector L = (pos - hit_point).normalize();
+						Vector L = (pos - hit_point);
 
 						processLight(L, avg_col, color, *material, ray, precise_hit_point, normal);
 
@@ -321,14 +328,14 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 
 				// Get L - the unit vector from the hit point to the light source
-				Vector L = (pos - hit_point).normalize();
+				Vector L = (pos - hit_point);
 
 				processLight(L, light->color, color, *material, ray, precise_hit_point, normal);
 			}
 		}
 		else {
 			// Get L - the unit vector from the hit point to the light source
-			Vector L = (light->position - hit_point).normalize();
+			Vector L = (light->position - hit_point);
 			processLight(L, light->color, color, *material, ray, precise_hit_point, normal);
 		}
 	}
@@ -403,7 +410,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		Vector rDir = ray.direction - normal * 2 * (ray.direction * normal);
 
 		// ASSIGNMENT EXTRA - FUZZY REFLECTIONS //
-	https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
+		https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
 		Ray* rRay = nullptr;
 		if (FUZZY_REFLECTIONS)
 			rRay = &Ray(precise_hit_point, (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize());
