@@ -121,6 +121,17 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode* node) {
 		int split_index;
 
 		// Check that left of mid_coord isnt empty (i.e object at left index has a centroid at the right of mid coord and object at right index has a centroid at left of mid coord).
+		// If thats the case use the average of centroids as the mid coordinates
+		if (objects[left_index]->getCentroid().getIndex(axis) > mid_coord || objects[right_index - 1]->getCentroid().getIndex(axis) <= mid_coord) {
+			mid_coord = 0.0f;
+			for (int i = left_index; i < right_index; i++) {
+				mid_coord += objects[i]->getCentroid().getIndex(axis);
+			}
+
+			mid_coord /= (right_index - left_index);
+		}
+
+		// Check that left of mid_coord isnt empty (i.e object at left index has a centroid at the right of mid coord and object at right index has a centroid at left of mid coord).
 		// If any of those conditions happen, one of our halfs is empty so just use left index + threshold
 		if (objects[left_index]->getCentroid().getIndex(axis) > mid_coord || objects[right_index - 1]->getCentroid().getIndex(axis) <= mid_coord) {
 			split_index = left_index + Threshold;
