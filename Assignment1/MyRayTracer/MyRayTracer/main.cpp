@@ -52,7 +52,7 @@ long myTime, timebase = 0, frame = 0;
 char s[32];
 
 //Enable OpenGL drawing.  
-bool drawModeEnabled = true;
+bool drawModeEnabled = false;
 
 bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 
@@ -81,14 +81,14 @@ int WindowHandle = 0;
 /* OPTIONS *///////////////////////////////
 float SHADOW_BIAS = 0.001f;
 
-bool ANTIALIASING = false;
+bool ANTIALIASING = true;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
-bool SOFT_SHADOWS = false;
-int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP)
+bool SOFT_SHADOWS = true;
+int NO_LIGHTS = 4; // (sqrt) Number of point lights used to represent area light (NOTE: SHOULD BE THE SAME AS SPP TO PRESENT SIMILAR EFFECTS WHEN WITH/WITHOUT ANTIALIASING)
 int off_x, off_y; // Used to cause a more even distribution when using soft shadows + antialiasing
 
-bool DEPTH_OF_FIELD = false;
+bool DEPTH_OF_FIELD = true;
 
 bool FUZZY_REFLECTIONS = false;
 float ROUGHNESS = 0.3f;
@@ -98,7 +98,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
