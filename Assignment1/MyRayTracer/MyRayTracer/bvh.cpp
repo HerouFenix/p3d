@@ -251,7 +251,7 @@ bool BVH::Traverse(Ray& ray, Object** hit_obj, Vector& hit_point) {
 			if (l_child->getAABB().isInside(ray.origin)) l_dist = 0;
 			if (r_child->getAABB().isInside(ray.origin)) r_dist = 0;
 
-			// If intersection happened, but at a distance larger than the distance between the ray and the light, it's as if it didn't happen
+			// If intersection happened, but at a distance larger than the current minimum, we don't care about it
 			if (l_hit && l_dist > tmin)
 				l_hit = false;
 
@@ -273,20 +273,20 @@ bool BVH::Traverse(Ray& ray, Object** hit_obj, Vector& hit_point) {
 				currentNode = l_child;
 				continue;
 			}
-			else if (r_hit) { // if only right hits, store it
+			else if (r_hit) { // if only right hits, pick it
 				currentNode = r_child;
 				continue;
 			}
 		}
 
-		// If no new node and leaf node has no objects that hit, get from the stack (or break if empty)
+		// If no new node or already explored leaf, get from the stack (or break if empty)
 		bool newNode = false;
 
 		while (!hit_stack.empty()) {
 			StackItem popped = hit_stack.top();
 			hit_stack.pop();
 
-			if (popped.t < tmin) { // Intersection to box is closer than our closest intersection to an object, so continue
+			if (popped.t < tmin) { // If Intersection to box is larger than our closest intersection to an object, so continue
 				currentNode = popped.ptr;
 				newNode = true;
 				break;

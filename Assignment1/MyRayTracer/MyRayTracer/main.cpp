@@ -80,8 +80,9 @@ int WindowHandle = 0;
 
 /* OPTIONS *///////////////////////////////
 float SHADOW_BIAS = 0.001f;
+bool SCHLICK_APPROX = false;
 
-bool ANTIALIASING = true;
+bool ANTIALIASING = false;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
 bool SOFT_SHADOWS = true;
@@ -91,7 +92,7 @@ int off_x, off_y; // Used to cause a more even distribution when using soft shad
 bool DEPTH_OF_FIELD = true;
 
 bool FUZZY_REFLECTIONS = false;
-float ROUGHNESS = 0.3f;
+float ROUGHNESS = 0.1f;
 
 bool MOTION_BLUR = false;
 float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
@@ -122,7 +123,7 @@ void processLight(Vector L, Color& lightColor, Color& color, Material material, 
 		double length;
 
 		bool in_shadow = false;
-		
+
 		// LAB 4: ACCELERATION STRUCTURES //
 		switch (USE_ACCEL_STRUCT) {
 		case 0: // No acceleration structure
@@ -279,15 +280,15 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 		// LAB 3: SOFT SHADOWS //
 		if (SOFT_SHADOWS) {
-			float size = 0.5f; // size of the light jitter
+			float size = 0.5f; // size of the spacing between lights in area
 
 			if (!ANTIALIASING) { // TODO: CHECK IF COMPUTING THE NEWLIGHT OUTSIDE THE RAYTRACING FUNCTION HAS BETTER PERFORMANCE (pq assim, smpr q formos buscar uma luz tamos a computar a area light toda again, this probably only needs to be done once)
 				// represent the area light as a distributed set of N point lights, each with one Nth of the intensity of the base light
 
 				float dist = size / NO_LIGHTS;
 				// Start at the top left corner of the grid
-				float cur_x = light->position.x - dist * NO_LIGHTS / 2;
-				float cur_y = light->position.y - dist * NO_LIGHTS / 2;
+				float cur_x = light->position.x - dist * NO_LIGHTS * 0.5f;
+				float cur_y = light->position.y - dist * NO_LIGHTS * 0.5f;
 
 				Color avg_col = light->color / (NO_LIGHTS * NO_LIGHTS);
 
@@ -304,8 +305,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 						cur_x += dist; // Move to next column
 					}
-					cur_y += dist;
-					cur_x = light->position.x - dist * NO_LIGHTS / 2;
+					cur_y += dist; // Go down a row
+					cur_x = light->position.x - dist * NO_LIGHTS * 0.5f; // Go back to left col
 				}
 			}
 			else {
@@ -322,8 +323,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				//		light->position.z);
 
 				pos = Vector(
-					light->position.x + size * (off_x + rand_float()) / SPP, // Pick random x within area of light -> using the same formula we use when creating a pixel sample (pixel.x = x + (p + rand_float()) / SPP;) but taking the light jitter size into account (size)
-					light->position.y + size * (off_y + rand_float()) / SPP, // Pick random y within area of light
+					light->position.x + size * ((off_x + rand_float()) / SPP), // Pick random x within area of light -> using the same formula we use when creating a pixel sample (pixel.x = x + (p + rand_float()) / SPP;) but taking the light jitter size into account (size)
+					light->position.y + size * ((off_y + rand_float()) / SPP), // Pick random y within area of light
 					light->position.z);
 
 
@@ -359,12 +360,31 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		normal = normal * -1;
 	}
 
+	// REFLECTION //
+	if (material->GetReflection() > 0) {
+		//	compute ray in the reflected direction
+		// https://www.scratchapixel.com/code.php?id=3&origin=/lessons/3d-basic-rendering/introduction-to-ray-tracing
+		Vector rDir = ray.direction - normal * 2 * (ray.direction * normal);
+
+		// ASSIGNMENT EXTRA - FUZZY REFLECTIONS //
+	https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
+		Ray* rRay = nullptr;
+		if (FUZZY_REFLECTIONS)
+			rRay = &Ray(precise_hit_point, (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize());
+		else
+			rRay = &Ray(precise_hit_point, rDir);
+
+		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1))
+		rColor = rayTracing(*rRay, depth + 1, ior_1);
+	}
+
+
+	// REFRACTION //
 	float Kr; // Reflection mix value 
 	Vector view = ray.direction * -1; // View
 	Vector viewNormal = (normal * (view * normal)); // ViewNormal
 	Vector viewTangent = viewNormal - view; // ViewTangent
 
-	// REFRACTION //
 	if (material->GetTransmittance() > 0) {
 		float Rperp = 1, Rparal = 1;
 
@@ -385,40 +405,31 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 			Ray tRay = Ray(intercept, tDir);
 
-			float newIoR = !inside ? material->GetRefrIndex() : 1;
+			float newIoR = !inside ? material->GetRefrIndex() : 1; // New Indice of Refraction
 
 			// compute refracted color using recursion (tColor = rayTracing(refracted ray direction, depth+1)
 			tColor = rayTracing(tRay, depth + 1, newIoR);
 
-			// Fresnel Equations https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
-			Rparal = pow(fabs((ior_1 * cosOt - newIoR * cosOi) / (ior_1 * cosOt + newIoR * cosOi)), 2); // parallel
-			Rperp = pow(fabs((ior_1 * cosOi - newIoR * cosOt) / (ior_1 * cosOi + newIoR * cosOt)), 2); // perpendicular
+			// Schlick Approximation
+			if (SCHLICK_APPROX) {
+				float r0 = pow(((ior_1 - newIoR) / (ior_1 + newIoR)), 2);
+				Kr = r0 + (1 - r0) * pow(1 - cosOi, 5);
+			}
+			else {
+				// Fresnel Equations https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
+				Rparal = pow(fabs((ior_1 * cosOt - newIoR * cosOi) / (ior_1 * cosOt + newIoR * cosOi)), 2); // parallel
+				Rperp = pow(fabs((ior_1 * cosOi - newIoR * cosOt) / (ior_1 * cosOi + newIoR * cosOt)), 2); // perpendicular
+			}
 		}
 
-		// ratio of reflected ligth (mirror reflection attenuation)
-		Kr = 1 / 2 * (Rperp + Rparal);
+		if(!SCHLICK_APPROX){
+			// ratio of reflected ligth (mirror reflection attenuation)
+			Kr = 1 / 2 * (Rperp + Rparal);
+		}
+
 	}
 	else { // Material is opaque
 		Kr = material->GetSpecular();
-	}
-
-
-	// REFLECTION //
-	if (material->GetReflection() > 0) {
-		//	compute ray in the reflected direction
-		// https://www.scratchapixel.com/code.php?id=3&origin=/lessons/3d-basic-rendering/introduction-to-ray-tracing
-		Vector rDir = ray.direction - normal * 2 * (ray.direction * normal);
-
-		// ASSIGNMENT EXTRA - FUZZY REFLECTIONS //
-		https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
-		Ray* rRay = nullptr;
-		if (FUZZY_REFLECTIONS)
-			rRay = &Ray(precise_hit_point, (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize());
-		else
-			rRay = &Ray(precise_hit_point, rDir);
-
-		//	compute reflection color using recursion (rColor = rayTracing(reflected ray direction, depth+1))
-		rColor = rayTracing(*rRay, depth + 1, ior_1);
 	}
 
 	//	reduce rColor and tColor by the reflection mix value and add to color
@@ -624,11 +635,11 @@ void renderScene()
 	if (drawModeEnabled) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		scene->GetCamera()->SetEye(Vector(camX, camY, camZ));  //Camera motion
+	}
 
-		// EXTRA ASSIGNMENT - MOTION BLUR //
-		if (MOTION_BLUR) {
-			scene->GetCamera()->SetShutterTime(t0, t1);
-		}
+	// EXTRA ASSIGNMENT - MOTION BLUR //
+	if (MOTION_BLUR) {
+		scene->GetCamera()->SetShutterTime(t0, t1);
 	}
 
 	// Set random seed for this iteration
