@@ -50,6 +50,9 @@ There are several options for distributed ray-tracing techniques and acceleratio
  - **P3F_scene**
 	  - Values: *true*, *false*
 	 - If enabled, allows the user to type which scene they want to render. Else, a default "debug" scene is presented.
+ - **SCHLICK_APPROX**
+	  - Values: *true*, *false*
+	 - If enabled, uses the Schlick approximation for computing the Fresnel factor (only important for when there is refraction)
 	 
 Additionally, in the file **scene.h** you can also toggle the option **USE_MAILBOX** between *true* or *false*, therefore enabling or disabling the usage of mailboxing
 
