@@ -94,12 +94,12 @@ bool DEPTH_OF_FIELD = true;
 bool FUZZY_REFLECTIONS = false;
 float ROUGHNESS = 0.1f;
 
-bool MOTION_BLUR = false;
+bool MOTION_BLUR = true;
 float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -331,7 +331,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 				// Get L - the unit vector from the hit point to the light source
 				Vector L = (pos - hit_point);
-
+				
 				processLight(L, light->color, color, *material, ray, precise_hit_point, normal);
 			}
 		}
@@ -423,7 +423,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			}
 		}
 
-		if(!SCHLICK_APPROX || insqrt < 0){
+		if(!SCHLICK_APPROX || insqrt < 0){ // If we're not using schlick always do this, else if we're using schlick only do this if insqrt is < 0
 			// ratio of reflected ligth (mirror reflection attenuation)
 			Kr = 1 / 2 * (Rperp + Rparal);
 		}
