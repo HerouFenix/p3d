@@ -82,7 +82,7 @@ int WindowHandle = 0;
 float SHADOW_BIAS = 0.001f;
 bool SCHLICK_APPROX = false;
 
-bool ANTIALIASING = false;
+bool ANTIALIASING = true;
 int SPP = 4; // (sqrt) Sample Per Pixel - (sqrt) Number of rays called for each pixel
 
 bool SOFT_SHADOWS = true;
@@ -99,7 +99,7 @@ float t0 = 0.0f, t1 = 1.0f; // Camera shutter time
 ///////////////////////////////////////////
 
 /* ACCELERATION STRUCTURES *///////////////
-int USE_ACCEL_STRUCT = 2; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
+int USE_ACCEL_STRUCT = 1; // 0 - No acceleration structure ; 1 - Uniform Grid ; 2 - Bounding Volume Hierarchy
 
 Grid uGrid;
 int Ray::next_id = 0; // For Mailboxing
@@ -280,12 +280,13 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 		// LAB 3: SOFT SHADOWS //
 		if (SOFT_SHADOWS) {
-			float size = 0.5f; // size of the spacing between lights in area
+			float size = 0.5f; // size of the light jitter
 
-			if (!ANTIALIASING) { // TODO: CHECK IF COMPUTING THE NEWLIGHT OUTSIDE THE RAYTRACING FUNCTION HAS BETTER PERFORMANCE (pq assim, smpr q formos buscar uma luz tamos a computar a area light toda again, this probably only needs to be done once)
+			if (!ANTIALIASING) {// TODO: CHECK IF COMPUTING THE NEWLIGHT OUTSIDE THE RAYTRACING FUNCTION HAS BETTER PERFORMANCE (pq assim, smpr q formos buscar uma luz tamos a computar a area light toda again, this probably only needs to be done once)
 				// represent the area light as a distributed set of N point lights, each with one Nth of the intensity of the base light
 
-				float dist = size / NO_LIGHTS;
+				float dist = size / NO_LIGHTS; // Distance between lights in light area
+
 				// Start at the top left corner of the grid
 				float cur_x = light->position.x - dist * NO_LIGHTS * 0.5f;
 				float cur_y = light->position.y - dist * NO_LIGHTS * 0.5f;
@@ -367,7 +368,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		Vector rDir = ray.direction - normal * 2 * (ray.direction * normal);
 
 		// ASSIGNMENT EXTRA - FUZZY REFLECTIONS //
-	https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
+		https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
 		Ray* rRay = nullptr;
 		if (FUZZY_REFLECTIONS)
 			rRay = &Ray(precise_hit_point, (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize());
@@ -401,7 +402,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 			// compute ray in the refracted direction
 			Vector tDir = (viewTangent.normalize() * sinOt + normal * (-cosOt)).normalize();
-			Vector intercept = hit_point + tDir * .0001;
+			Vector intercept = hit_point + tDir * SHADOW_BIAS;
 
 			Ray tRay = Ray(intercept, tDir);
 
@@ -422,7 +423,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			}
 		}
 
-		if(!SCHLICK_APPROX){
+		if(!SCHLICK_APPROX || insqrt < 0){
 			// ratio of reflected ligth (mirror reflection attenuation)
 			Kr = 1 / 2 * (Rperp + Rparal);
 		}
