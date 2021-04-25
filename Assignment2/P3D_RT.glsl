@@ -58,7 +58,7 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
 
-if(hit_sphere(
+    if(hit_sphere(
         createSphere(vec3(0.0, 1.0, 0.0), -0.95),
         r,
         tmin,
@@ -213,8 +213,7 @@ vec3 rayColor(Ray r)
 
 #define MAX_SAMPLES 10000.0
 
-void main()
-{
+void main(){
     gSeed = float(baseHash(floatBitsToUint(gl_FragCoord.xy))) / float(0xffffffffU) + iTime;
 
     vec2 mouse = iMouse.xy / iResolution.xy;
@@ -238,8 +237,8 @@ void main()
         time0,
         time1);
 
-//usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
-
+    //usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
+    
     vec4 prev = texture(iChannel0, gl_FragCoord.xy / iResolution.xy);
     vec3 prevLinear = toLinear(prev.xyz);  
 

@@ -1,3 +1,4 @@
+#define GLSLIFY 1
 /**
  * common.glsl
  * Common types and functions used for ray tracing.
@@ -185,7 +186,6 @@ struct HitRecord
     Material material;
 };
 
-
 float schlick(float cosine, float refIdx)
 {
     //INSERT YOUR CODE HERE
@@ -277,7 +277,6 @@ bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
     vec3 normal = vec3(0.0f);
     float t = 0.0f;
 
-
     // https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
 	// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
@@ -330,7 +329,6 @@ bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
     return false;
 }
 
-
 struct Sphere
 {
     vec3 center;
@@ -344,7 +342,6 @@ Sphere createSphere(vec3 center, float radius)
     s.radius = radius;
     return s;
 }
-
 
 struct MovingSphere
 {
@@ -369,7 +366,6 @@ vec3 center(MovingSphere mvsphere, float time)
     return mvsphere.center0 + (mvsphere.center1 - mvsphere.center0) * ((time - mvsphere.time0) / (mvsphere.time1 - mvsphere.time0));
 }
 
-
 /*
  * The function naming convention changes with these functions to show that they implement a sort of interface for
  * the book's notion of "hittable". E.g. hit_<type>.
@@ -381,7 +377,6 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
     //calculate a valid t and normal
 	
     float t = 0.0f;
-
 
     // https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
 	vec3 L = s.center - r.o;
