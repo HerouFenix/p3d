@@ -61,7 +61,7 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
     }
 
     if(hit_sphere(
-        //createSphere(vec3(0.0, 1.0, 0.0), -0.75),
+        //createSphere(vec3(0.0, 1.0, 0.0), -0.95),
         createSphere(vec3(0.0, 1.0, 0.0), -0.75),
         r,
         tmin,
@@ -172,6 +172,8 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
     float shininess;
     HitRecord dummy;
 
+    float diffuse, specular;
+
    //INSERT YOUR CODE HERE
     vec3 L = (pl.pos - rec.pos);
     if(dot(L, rec.normal) > 0.0){
@@ -183,37 +185,37 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
             return colorOut;
         }
 
-
-        // TODO: How to do this? I know we have to use the albedo, and it has different meanings depending on the type of material but thats about it :/
-
         if(rec.material.type == MT_DIFFUSE)
         {
+            specCol = vec3(1.0);
+            diffCol = vec3(0.5, 0.45, 0.35);
+
+            shininess = 1.0;
+            diffuse = 1.0;
+            specular = 0.0;
         }else if(rec.material.type == MT_METAL){
-
+            specCol = vec3(0.957,0.639,0.536);
+            diffCol = vec3(1.0);
+            
+            shininess = 190.0;
+            diffuse = 0.0;
+            specular = 1.0;
         }else{ // Dialletric Materials
-
+            specCol = vec3(0.0,0.0,1.0);
+            diffCol = vec3(0.0);
+            
+            shininess = 500.0;
+            diffuse = 0.0;
+            specular = 0.0;
         }
-
-        
-        //L = L.normalize();
-
-        //Vector H = ((L + (ray.direction * -1))).normalize();
-
-        //Color diff = (lightColor * material.GetDiffColor()) * (max(0, normal * L));
-        //Color spec = (lightColor * material.GetSpecColor()) * pow(max(0, H * normal), material.GetShine());
-
-        ////color = diffuse color + specular color
-        //color += (diff * material.GetDiffuse() + spec * material.GetSpecular());
 
         L = normalize(L);
         vec3 H = normalize((L - r.d));
 
-        shininess = 1.0;
+        diffCol = (pl.color * diffCol) * max(dot(rec.normal, L), 0.0); 
+        specCol = (pl.color * specCol) * pow(max(dot(H, rec.normal), 0.0), shininess); 
 
-        diffCol = (pl.color * vec3(1.0,1.0,1.0)) * max(dot(rec.normal, L), 0.0); 
-        specCol = (pl.color * vec3(1.0,1.0,1.0)) * pow(max(dot(H, rec.normal), 0.0), 1.0); 
-
-        colorOut = diffCol * 0.5 + specCol * 0.5;
+        colorOut = diffCol * diffuse + specCol * specular;  
     }
     
 	return colorOut; 

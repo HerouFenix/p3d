@@ -252,13 +252,13 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
         {
             outwardNormal = -rec.normal;
             niOverNt = rec.material.refIdx / 1.0;
-            cosine = rec.material.refIdx * dot(rIn.d, rec.normal); 
+            cosine = rec.material.refIdx * dot(rIn.d, rec.normal);             
         }
         else  //hit from outside
         {
             outwardNormal = rec.normal;
             niOverNt = 1.0 / rec.material.refIdx;
-            cosine = -dot(rIn.d, rec.normal); 
+            cosine = -dot(rIn.d, rec.normal);             
         }
 
         // TODO: How to do this?
@@ -271,11 +271,7 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
         //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
         //else reflectProb = 1.0;
 
-        //if(How to check total reflection?){ // TODO: CHECK IF THIS IS RIGHT
-            reflectProb = schlick(cosine, rec.material.refIdx);
-        //}else{
-        //    reflectProb = 1.0;
-        //}
+        reflectProb = schlick(cosine, rec.material.refIdx);
 
         //if( hash1(gSeed) < reflectProb)  //Reflection
         // rScattered = calculate reflected ray
@@ -290,8 +286,8 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
         if(hash1(gSeed) < reflectProb){ // Reflection
             // rScattered = calculate reflected ray
 
-            vec3 rayDir = reflect(rIn.d, rec.normal);
-
+            vec3 rayDir = reflect(rIn.d, outwardNormal);
+            
             // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
             rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
 
@@ -300,15 +296,7 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
             //atten *= vec3(reflectProb); //not necessary since we are only scattering reflectProb rays and not all reflected rays
         }else{ // Refraction
             // rScattered = calculate refracted ray
-            // scattering a secondary ray in a random direction within an hemisphere to accomplish the color bleeding effect
-
-            //vec3 rayDir = normalize(rec.normal + RandomUnitVector(gSeed));
-            //vec3 rayDir = normalize(rec.normal + hash3(gSeed));
-
-            vec3 S = rec.pos + rec.normal + normalize(randomInUnitSphere(gSeed));
-            vec3 rayDir = normalize(S - rec.pos);
-
-            rScattered = createRay(rec.pos, rayDir, rIn.t);
+            
             //atten *= vec3(1.0 - reflectProb); //not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
         }
         
