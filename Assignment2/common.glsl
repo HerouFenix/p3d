@@ -214,32 +214,32 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     if(rec.material.type == MT_DIFFUSE)
     {
         //INSERT CODE HERE,
-        vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
+        //vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
 
         // scattering a secondary ray in a random direction within an hemisphere to accomplish the color bleeding effect
         //vec3 rayDir = normalize(rec.normal + RandomUnitVector(gSeed));
-        vec3 rayDir = normalize(rec.normal + hash3(gSeed));
+        //vec3 rayDir = normalize(rec.normal + hash3(gSeed));
+        
+        vec3 S = rec.pos + rec.normal + normalize(randomInUnitSphere(gSeed));
+        vec3 rayDir = normalize(S - rec.pos);
 
-        rScattered = createRay(rayPos, rayDir, rIn.t);
+        rScattered = createRay(rec.pos, rayDir, rIn.t);
 
         atten = rec.material.albedo * max(dot(rScattered.d, rec.normal), 0.0) / pi;
         return true;
     }
     if(rec.material.type == MT_METAL)
     {
-        /*
         //INSERT CODE HERE, consider fuzzy reflections
-        vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
-
         vec3 rayDir = reflect(rIn.d, rec.normal);
+
         // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
         rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
 
-        rScattered = createRay(rayPos, rayDir, rIn.t);
+        rScattered = createRay(rec.pos, rayDir, rIn.t);
 
         atten = rec.material.albedo;
         return true;
-        */
     }
     if(rec.material.type == MT_DIALECTRIC)
     {
@@ -261,21 +261,21 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
             cosine = -dot(rIn.d, rec.normal); 
         }
 
+        // TODO: How to do this?
+
         /* FRESNEL - INSERT CODE HERE */
         //Use probabilistic math to decide if scatter a reflected ray or a refracted ray
-        /*
+        
         float reflectProb;
         
         //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
         //else reflectProb = 1.0;
 
-        float sinT2 = niOverNt * niOverNt * (1.0 - cosine * cosine);
-
-        if(sinT2 <= 1.0){ // TODO: CHECK IF THIS IS RIGHT
+        //if(How to check total reflection?){ // TODO: CHECK IF THIS IS RIGHT
             reflectProb = schlick(cosine, rec.material.refIdx);
-        }else{
-            reflectProb = 1.0;
-        }
+        //}else{
+        //    reflectProb = 1.0;
+        //}
 
         //if( hash1(gSeed) < reflectProb)  //Reflection
         // rScattered = calculate reflected ray
@@ -286,14 +286,35 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
            // atten *= vec3(1.0 - reflectProb); not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
         //}
 
+        
         if(hash1(gSeed) < reflectProb){ // Reflection
             // rScattered = calculate reflected ray
+
+            vec3 rayDir = reflect(rIn.d, rec.normal);
+
+            // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
+            rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
+
+            rScattered = createRay(rec.pos, rayDir, rIn.t);
+
+            //atten *= vec3(reflectProb); //not necessary since we are only scattering reflectProb rays and not all reflected rays
         }else{ // Refraction
             // rScattered = calculate refracted ray
+            // scattering a secondary ray in a random direction within an hemisphere to accomplish the color bleeding effect
+
+            //vec3 rayDir = normalize(rec.normal + RandomUnitVector(gSeed));
+            //vec3 rayDir = normalize(rec.normal + hash3(gSeed));
+
+            vec3 S = rec.pos + rec.normal + normalize(randomInUnitSphere(gSeed));
+            vec3 rayDir = normalize(S - rec.pos);
+
+            rScattered = createRay(rec.pos, rayDir, rIn.t);
+            //atten *= vec3(1.0 - reflectProb); //not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
         }
+        
 
         return true;
-        */
+        
     }
     return false;
 }

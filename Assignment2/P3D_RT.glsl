@@ -7,6 +7,8 @@
  #include "./common.glsl"
  #iChannel0 "self"
 
+ bool USE_RUSSIAN_ROULETTE = false;
+
 bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
 {
     bool hit = false;
@@ -59,7 +61,8 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
     }
 
     if(hit_sphere(
-        createSphere(vec3(0.0, 1.0, 0.0), -0.95),
+        //createSphere(vec3(0.0, 1.0, 0.0), -0.75),
+        createSphere(vec3(0.0, 1.0, 0.0), -0.75),
         r,
         tmin,
         rec.t,
@@ -172,15 +175,25 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
    //INSERT YOUR CODE HERE
     vec3 L = (pl.pos - rec.pos);
     if(dot(L, rec.normal) > 0.0){
-        Ray feeler = createRay(rec.pos, L, r.t);
-        float len = length(feeler.d);
+        Ray feeler = createRay(rec.pos + epsilon * rec.normal, L);
+        float len = length(pl.pos - rec.pos);
 
-        if(hit_world(feeler, 0.001, len, dummy)) // If true, then we're in shadow. Return color as 0
+        if(hit_world(feeler, 0.0, len, dummy)) // If true, then we're in shadow. Return color as 0
         { 
             return colorOut;
         }
 
-        // TODO: HOW TO GET THE MATERIAL'S DIFF AND SPEC COLOR, AND THE SHINE?!
+
+        // TODO: How to do this? I know we have to use the albedo, and it has different meanings depending on the type of material but thats about it :/
+
+        if(rec.material.type == MT_DIFFUSE)
+        {
+        }else if(rec.material.type == MT_METAL){
+
+        }else{ // Dialletric Materials
+
+        }
+
         
         //L = L.normalize();
 
@@ -243,7 +256,16 @@ vec3 rayColor(Ray r)
 
                 r = scatterRay;
                 throughput *= atten; // TODO: SHOULD WE USE ATTEN HERE?
+                
+                // Russian Roulette - https://blog.demofox.org/2020/06/06/casual-shadertoy-path-tracing-2-image-improvement-and-glossy-reflections/
+                if(USE_RUSSIAN_ROULETTE){
+                    float p = max(throughput.x, max(throughput.y, throughput.z));
+                    if(hash1(gSeed) > p)
+                        break;
 
+                    throughput *= 1.0 / p;    
+                }
+                
             }
         
         }
