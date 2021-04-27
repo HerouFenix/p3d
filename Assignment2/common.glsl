@@ -248,17 +248,23 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
         float niOverNt;
         float cosine;
 
+        float r0;
+
         if(dot(rIn.d, rec.normal) > 0.0) //hit inside
         {
             outwardNormal = -rec.normal;
             niOverNt = rec.material.refIdx / 1.0;
-            cosine = rec.material.refIdx * dot(rIn.d, rec.normal);             
+            cosine = rec.material.refIdx * dot(rIn.d, rec.normal); 
+            
+            r0 = pow(((rec.material.refIdx - 1.0) / (rec.material.refIdx + 1.0)), 2.0);
         }
         else  //hit from outside
         {
             outwardNormal = rec.normal;
             niOverNt = 1.0 / rec.material.refIdx;
-            cosine = -dot(rIn.d, rec.normal);             
+            cosine = -dot(rIn.d, rec.normal); 
+            
+            r0 = pow(((1.0 - rec.material.refIdx ) / (1.0 + rec.material.refIdx)), 2.0);
         }
 
         // TODO: How to do this?
@@ -267,11 +273,12 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
         //Use probabilistic math to decide if scatter a reflected ray or a refracted ray
         
         float reflectProb;
-        
+
+        // TODO: THIS vvvv        
         //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
         //else reflectProb = 1.0;
 
-        reflectProb = schlick(cosine, rec.material.refIdx);
+        reflectProb = schlick(cosine, r0);
 
         //if( hash1(gSeed) < reflectProb)  //Reflection
         // rScattered = calculate reflected ray
@@ -296,7 +303,23 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
             //atten *= vec3(reflectProb); //not necessary since we are only scattering reflectProb rays and not all reflected rays
         }else{ // Refraction
             // rScattered = calculate refracted ray
+
             
+            vec3 view = -rIn.d;
+            vec3 viewNormal = (outwardNormal * dot(view, outwardNormal));
+            vec3 viewTangent = viewNormal - view;
+
+            float cosOi = length(viewNormal);
+            float sinOt = niOverNt * length(viewTangent);
+            float insqrt = 1.0 - pow(sinOt, 2.0);
+            float cosOt = sqrt(insqrt);
+
+            vec3 tDir = normalize((normalize(viewTangent) * sinOt + outwardNormal * (-cosOt)));
+            vec3 intercept = rec.pos + tDir;
+            rScattered = createRay(rec.pos, tDir, rIn.t);
+            
+
+            //rScattered = createRay(rec.pos, rayDir, rIn.t);
             //atten *= vec3(1.0 - reflectProb); //not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
         }
         
