@@ -58,6 +58,16 @@ vec3 hash3(inout float seed)
     return vec3(rz & uvec3(0x7fffffffU)) / float(0x7fffffff);
 }
 
+vec3 RandomUnitVector(inout float seed)
+{
+    float z = hash1(seed) * 2.0f - 1.0f;
+    float a = hash1(seed) * 2.0f * pi;
+    float r = sqrt(1.0f - z * z);
+    float x = r * cos(a);
+    float y = r * sin(a);
+    return vec3(x, y, z);
+}
+
 float rand(vec2 v)
 {
     return fract(sin(dot(v.xy, vec2(12.9898, 78.233))) * 43758.5453);
@@ -132,10 +142,16 @@ Ray getRay(Camera cam, vec2 pixel_sample)  //rnd pixel_sample viewport coordinat
     vec2 ls = cam.lensRadius * randomInUnitDisk(gSeed);  //ls - lens sample for DOF
     float time = cam.time0 + hash1(gSeed) * (cam.time1 - cam.time0);
     
-    vec3 rayTarget = vec3((gl_FragCoord.xy/iResolution.xy) * 2.0f - 1.0f, 1.0f);
-    vec3 rayDir = normalize(rayTarget - cam.eye);
+    //Calculate eye_offset and ray direction
+    //vec3 rayTarget = vec3((gl_FragCoord.xy/iResolution.xy) * 2.0f - 1.0f, 1.0f);
+    //vec3 rayDir = normalize(rayTarget - cam.eye);
+    
+    vec3 p = vec3(cam.width * (pixel_sample.x / iResolution.x - 0.5f) * cam.focusDist, cam.height * (pixel_sample.y / iResolution.y - 0.5f) * cam.focusDist, 0);
 
-    return createRay(cam.eye, normalize(rayTarget - cam.eye), time);
+    vec3 ray_dir = vec3(cam.u * (p.x - ls.x) + cam.v * (p.y - ls.y) + cam.n * (-cam.focusDist * cam.planeDist));
+    vec3 eye_offset = cam.eye + (cam.u * ls.x) + (cam.v * ls.y); 
+
+    return createRay(eye_offset, normalize(ray_dir), time);
 }
 
 // MT_ material type
@@ -189,8 +205,8 @@ struct HitRecord
 float schlick(float cosine, float refIdx)
 {
     //INSERT YOUR CODE HERE
-    float r = refIdx + (1.0f - refIdx) * pow((1.0f - cosine), 5.0);
-    return 0.0f;
+    float Kr = refIdx + (1.0f - refIdx) * pow((1.0f - cosine), 5.0);
+    return Kr;
 }
 
 bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
@@ -198,14 +214,32 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     if(rec.material.type == MT_DIFFUSE)
     {
         //INSERT CODE HERE,
+        vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
+
+        // scattering a secondary ray in a random direction within an hemisphere to accomplish the color bleeding effect
+        //vec3 rayDir = normalize(rec.normal + RandomUnitVector(gSeed));
+        vec3 rayDir = normalize(rec.normal + hash3(gSeed));
+
+        rScattered = createRay(rayPos, rayDir, rIn.t);
+
         atten = rec.material.albedo * max(dot(rScattered.d, rec.normal), 0.0) / pi;
         return true;
     }
     if(rec.material.type == MT_METAL)
     {
-       //INSERT CODE HERE, consider fuzzy reflections
+        /*
+        //INSERT CODE HERE, consider fuzzy reflections
+        vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
+
+        vec3 rayDir = reflect(rIn.d, rec.normal);
+        // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
+        rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
+
+        rScattered = createRay(rayPos, rayDir, rIn.t);
+
         atten = rec.material.albedo;
         return true;
+        */
     }
     if(rec.material.type == MT_DIALECTRIC)
     {
@@ -217,7 +251,7 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
         if(dot(rIn.d, rec.normal) > 0.0) //hit inside
         {
             outwardNormal = -rec.normal;
-            niOverNt = rec.material.refIdx;
+            niOverNt = rec.material.refIdx / 1.0;
             cosine = rec.material.refIdx * dot(rIn.d, rec.normal); 
         }
         else  //hit from outside
@@ -227,21 +261,39 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
             cosine = -dot(rIn.d, rec.normal); 
         }
 
+        /* FRESNEL - INSERT CODE HERE */
         //Use probabilistic math to decide if scatter a reflected ray or a refracted ray
-
+        /*
         float reflectProb;
-
+        
         //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
         //else reflectProb = 1.0;
 
-        if( hash1(gSeed) < reflectProb)  //Reflection
+        float sinT2 = niOverNt * niOverNt * (1.0 - cosine * cosine);
+
+        if(sinT2 <= 1.0){ // TODO: CHECK IF THIS IS RIGHT
+            reflectProb = schlick(cosine, rec.material.refIdx);
+        }else{
+            reflectProb = 1.0;
+        }
+
+        //if( hash1(gSeed) < reflectProb)  //Reflection
         // rScattered = calculate reflected ray
           // atten *= vec3(reflectProb); not necessary since we are only scattering reflectProb rays and not all reflected rays
         
         //else  //Refraction
         // rScattered = calculate refracted ray
            // atten *= vec3(1.0 - reflectProb); not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
+        //}
+
+        if(hash1(gSeed) < reflectProb){ // Reflection
+            // rScattered = calculate reflected ray
+        }else{ // Refraction
+            // rScattered = calculate refracted ray
+        }
+
         return true;
+        */
     }
     return false;
 }
@@ -270,7 +322,6 @@ Triangle createTriangle(vec3 v0, vec3 v1, vec3 v2)
 
 bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
 {
-
     //INSERT YOUR CODE HERE
     //calculate a valid t and normal
 
@@ -382,7 +433,6 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
 	
     float t = 0.0f;
 
-
     // https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
 	vec3 L = s.center - r.o;
 	//float a = r.direction * r.direction;
@@ -416,7 +466,6 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
     }
     else return false;
 }
-
 bool hit_movingSphere(MovingSphere s, Ray r, float tmin, float tmax, out HitRecord rec)
 {
      //INSERT YOUR CODE HERE

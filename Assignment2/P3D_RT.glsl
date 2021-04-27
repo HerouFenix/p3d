@@ -170,6 +170,38 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
     HitRecord dummy;
 
    //INSERT YOUR CODE HERE
+    vec3 L = (pl.pos - rec.pos);
+    if(dot(L, rec.normal) > 0.0){
+        Ray feeler = createRay(rec.pos, L, r.t);
+        float len = length(feeler.d);
+
+        if(hit_world(feeler, 0.001, len, dummy)) // If true, then we're in shadow. Return color as 0
+        { 
+            return colorOut;
+        }
+
+        // TODO: HOW TO GET THE MATERIAL'S DIFF AND SPEC COLOR, AND THE SHINE?!
+        
+        //L = L.normalize();
+
+        //Vector H = ((L + (ray.direction * -1))).normalize();
+
+        //Color diff = (lightColor * material.GetDiffColor()) * (max(0, normal * L));
+        //Color spec = (lightColor * material.GetSpecColor()) * pow(max(0, H * normal), material.GetShine());
+
+        ////color = diffuse color + specular color
+        //color += (diff * material.GetDiffuse() + spec * material.GetSpecular());
+
+        L = normalize(L);
+        vec3 H = normalize((L - r.d));
+
+        shininess = 1.0;
+
+        diffCol = (pl.color * vec3(1.0,1.0,1.0)) * max(dot(rec.normal, L), 0.0); 
+        specCol = (pl.color * vec3(1.0,1.0,1.0)) * pow(max(dot(H, rec.normal), 0.0), 1.0); 
+
+        colorOut = diffCol * 0.5 + specCol * 0.5;
+    }
     
 	return colorOut; 
 }
@@ -186,19 +218,33 @@ vec3 rayColor(Ray r)
         if(hit_world(r, 0.001, 10000.0, rec))
         {
             //calculate direct lighting with 3 white point lights:
+            /* DIRECT LIGHTING */
             {
                 //createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0))
                 //createPointLight(vec3(8.0, 15.0, 3.0), vec3(1.0, 1.0, 1.0))
                 //createPointLight(vec3(1.0, 15.0, -9.0), vec3(1.0, 1.0, 1.0))
 
                 //for instance: col += directlighting(createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
+                col += directlighting(createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
+                col += directlighting(createPointLight(vec3(8.0, 15.0, 3.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
+                col += directlighting(createPointLight(vec3(1.0, 15.0, -9.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
             }
            
             //calculate secondary ray and update throughput
+            /* INDIRECT LIGHTING */
             Ray scatterRay;
             vec3 atten;
-            if(scatter(r, rec, atten, scatterRay))
-            {   //  insert your code here    }
+            if(scatter(r, rec, atten, scatterRay)) // Indirect Lighting
+            {   //  insert your code here    
+                // a secondary ray will be scattered which means that the initial ray will be simply 
+                // overwritten with the result of the ray produced by the scattering event before the next 
+                // loop iteration and the throughput of this new ray will be updated by multiplying it by the 
+                // object’s albedo.
+
+                r = scatterRay;
+                throughput *= atten; // TODO: SHOULD WE USE ATTEN HERE?
+
+            }
         
         }
         else  //background
@@ -213,7 +259,8 @@ vec3 rayColor(Ray r)
 
 #define MAX_SAMPLES 10000.0
 
-void main(){
+void main()
+{
     gSeed = float(baseHash(floatBitsToUint(gl_FragCoord.xy))) / float(0xffffffffU) + iTime;
 
     vec2 mouse = iMouse.xy / iResolution.xy;
@@ -237,8 +284,8 @@ void main(){
         time0,
         time1);
 
-    //usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
-    
+//usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
+
     vec4 prev = texture(iChannel0, gl_FragCoord.xy / iResolution.xy);
     vec3 prevLinear = toLinear(prev.xyz);  
 
