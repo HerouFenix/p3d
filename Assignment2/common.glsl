@@ -305,21 +305,9 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
             // rScattered = calculate refracted ray
 
             
-            vec3 view = -rIn.d;
-            vec3 viewNormal = (outwardNormal * dot(view, outwardNormal));
-            vec3 viewTangent = viewNormal - view;
+            vec3 rayDir = normalize(refract(rIn.d, outwardNormal,niOverNt));
+            rScattered = createRay(rec.pos, rayDir, rIn.t);
 
-            float cosOi = length(viewNormal);
-            float sinOt = niOverNt * length(viewTangent);
-            float insqrt = 1.0 - pow(sinOt, 2.0);
-            float cosOt = sqrt(insqrt);
-
-            vec3 tDir = normalize((normalize(viewTangent) * sinOt + outwardNormal * (-cosOt)));
-            vec3 intercept = rec.pos + tDir;
-            rScattered = createRay(rec.pos, tDir, rIn.t);
-            
-
-            //rScattered = createRay(rec.pos, rayDir, rIn.t);
             //atten *= vec3(1.0 - reflectProb); //not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
         }
         
