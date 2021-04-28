@@ -59,10 +59,10 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         hit = true;
         rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
-
+    
     if(hit_sphere(
         //createSphere(vec3(0.0, 1.0, 0.0), -0.95),
-        createSphere(vec3(0.0, 1.0, 0.0), -0.75),
+        createSphere(vec3(0.0, 1.0, 0.0), -0.45),
         r,
         tmin,
         rec.t,
@@ -71,6 +71,7 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         hit = true;
         rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
+    
    
     int numxy = 5;
     
@@ -187,26 +188,17 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
 
         if(rec.material.type == MT_DIFFUSE)
         {
-            specCol = vec3(1.0);
-            diffCol = vec3(0.5, 0.45, 0.35);
-
-            shininess = 1.0;
-            diffuse = 1.0;
-            specular = 0.0;
+            specCol = vec3(0.1);
+            diffCol = rec.material.albedo;
+            shininess = 10.0;
         }else if(rec.material.type == MT_METAL){
-            specCol = vec3(0.957,0.639,0.536);
-            diffCol = vec3(1.0);
-            
-            shininess = 190.0;
-            diffuse = 0.0;
-            specular = 1.0;
-        }else{ // Dialletric Materials
-            specCol = vec3(0.0,0.0,1.0);
+            specCol = rec.material.albedo;
             diffCol = vec3(0.0);
-            
+            shininess = 190.0;
+        }else{ // Dialletric Materials
+            specCol = vec3(0.004);
+            diffCol = vec3(0.0);
             shininess = 500.0;
-            diffuse = 0.0;
-            specular = 0.0;
         }
 
         L = normalize(L);
@@ -215,7 +207,7 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
         diffCol = (pl.color * diffCol) * max(dot(rec.normal, L), 0.0); 
         specCol = (pl.color * specCol) * pow(max(dot(H, rec.normal), 0.0), shininess); 
 
-        colorOut = diffCol * diffuse + specCol * specular;  
+        colorOut = diffCol + specCol;  
     }
     
 	return colorOut; 

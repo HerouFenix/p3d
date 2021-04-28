@@ -202,10 +202,11 @@ struct HitRecord
 };
 
 
-float schlick(float cosine, float refIdx)
+float schlick(float cosOi, float ior_1, float ior_2)
 {
     //INSERT YOUR CODE HERE
-    float Kr = refIdx + (1.0f - refIdx) * pow((1.0f - cosine), 5.0);
+    float r0 = pow(((ior_1 - ior_2) / (ior_1 + ior_2)), 2.0);
+	float Kr = r0 + (1.0 - r0) * pow(1.0 - cosOi, 5.0);
     return Kr;
 }
 
@@ -244,76 +245,44 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     if(rec.material.type == MT_DIALECTRIC)
     {
         atten = rec.material.albedo;
-        vec3 outwardNormal;
-        float niOverNt;
-        float cosine;
+        vec3 outNormal;
+        float n, cosine, kr;
+        bool inside = false;
 
-        float r0;
-
-        if(dot(rIn.d, rec.normal) > 0.0) //hit inside
-        {
-            outwardNormal = -rec.normal;
-            niOverNt = rec.material.refIdx / 1.0;
-            cosine = rec.material.refIdx * dot(rIn.d, rec.normal); 
+	    if (dot(rIn.d, rec.normal) > 0.0) {
+		    inside = true;
+		    outNormal = rec.normal * -1.0;
+            cosine = rec.material.refIdx * dot(rIn.d, rec.normal);
+            n = rec.material.refIdx / 1.0;
+            kr = schlick(cosine, rec.material.refIdx, 1.0);
             
-            r0 = pow(((rec.material.refIdx - 1.0) / (rec.material.refIdx + 1.0)), 2.0);
-        }
-        else  //hit from outside
-        {
-            outwardNormal = rec.normal;
-            niOverNt = 1.0 / rec.material.refIdx;
-            cosine = -dot(rIn.d, rec.normal); 
-            
-            r0 = pow(((1.0 - rec.material.refIdx ) / (1.0 + rec.material.refIdx)), 2.0);
+	    } else{
+            inside = false;
+            outNormal = rec.normal;
+            cosine = -dot(rIn.d, rec.normal);
+            n = 1.0 / rec.material.refIdx;
+            kr = schlick(cosine, 1.0, rec.material.refIdx); 
         }
 
-        // TODO: How to do this?
-
-        /* FRESNEL - INSERT CODE HERE */
-        //Use probabilistic math to decide if scatter a reflected ray or a refracted ray
-        
-        float reflectProb;
-
-        // TODO: THIS vvvv        
-        //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
-        //else reflectProb = 1.0;
-
-        reflectProb = schlick(cosine, r0);
-
-        //if( hash1(gSeed) < reflectProb)  //Reflection
-        // rScattered = calculate reflected ray
-          // atten *= vec3(reflectProb); not necessary since we are only scattering reflectProb rays and not all reflected rays
-        
-        //else  //Refraction
-        // rScattered = calculate refracted ray
-           // atten *= vec3(1.0 - reflectProb); not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
-        //}
-
-        
-        if(hash1(gSeed) < reflectProb){ // Reflection
-            // rScattered = calculate reflected ray
-
-            vec3 rayDir = reflect(rIn.d, outwardNormal);
-            
-            // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
+        if(hash1(gSeed) < kr){ // Reflection
+            vec3 rayDir = reflect(rIn.d, outNormal);
             rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
-
             rScattered = createRay(rec.pos, rayDir, rIn.t);
-
-            //atten *= vec3(reflectProb); //not necessary since we are only scattering reflectProb rays and not all reflected rays
-        }else{ // Refraction
-            // rScattered = calculate refracted ray
-
-            
-            vec3 rayDir = normalize(refract(rIn.d, outwardNormal,niOverNt));
-            rScattered = createRay(rec.pos, rayDir, rIn.t);
-
-            //atten *= vec3(1.0 - reflectProb); //not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
-        }
-        
-
+        } else{ // Refraction
+            vec3 view = rIn.d * -1.0; 
+	        vec3 viewNormal = (outNormal * dot(view, outNormal));
+	        vec3 viewTangent = viewNormal - view;
+            float cosOi = length(viewNormal);
+            float sinOt = n * length(viewTangent);
+            float insqrt = 1.0 - pow(sinOt, 2.0);
+            if(insqrt >= 0.0){
+                float cosOt = sqrt(insqrt);
+                vec3 tDir = normalize((normalize(viewTangent) * sinOt + outNormal * normalize(-cosOt)));
+                vec3 intercept = rec.pos + rec.normal * epsilon;
+                rScattered = createRay(rec.pos, tDir, rIn.t);
+            }
+        }  
         return true;
-        
     }
     return false;
 }

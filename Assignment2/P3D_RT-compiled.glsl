@@ -66,6 +66,16 @@ vec3 hash3(inout float seed)
     return vec3(rz & uvec3(0x7fffffffU)) / float(0x7fffffff);
 }
 
+vec3 RandomUnitVector(inout float seed)
+{
+    float z = hash1(seed) * 2.0f - 1.0f;
+    float a = hash1(seed) * 2.0f * pi;
+    float r = sqrt(1.0f - z * z);
+    float x = r * cos(a);
+    float y = r * sin(a);
+    return vec3(x, y, z);
+}
+
 float rand(vec2 v)
 {
     return fract(sin(dot(v.xy, vec2(12.9898, 78.233))) * 43758.5453);
@@ -140,10 +150,16 @@ Ray getRay(Camera cam, vec2 pixel_sample)  //rnd pixel_sample viewport coordinat
     vec2 ls = cam.lensRadius * randomInUnitDisk(gSeed);  //ls - lens sample for DOF
     float time = cam.time0 + hash1(gSeed) * (cam.time1 - cam.time0);
     
-    vec3 rayTarget = vec3((gl_FragCoord.xy/iResolution.xy) * 2.0f - 1.0f, 1.0f);
-    vec3 rayDir = normalize(rayTarget - cam.eye);
+    //Calculate eye_offset and ray direction
+    //vec3 rayTarget = vec3((gl_FragCoord.xy/iResolution.xy) * 2.0f - 1.0f, 1.0f);
+    //vec3 rayDir = normalize(rayTarget - cam.eye);
+    
+    vec3 p = vec3(cam.width * (pixel_sample.x / iResolution.x - 0.5f) * cam.focusDist, cam.height * (pixel_sample.y / iResolution.y - 0.5f) * cam.focusDist, 0);
 
-    return createRay(cam.eye, normalize(rayTarget - cam.eye), time);
+    vec3 ray_dir = vec3(cam.u * (p.x - ls.x) + cam.v * (p.y - ls.y) + cam.n * (-cam.focusDist * cam.planeDist));
+    vec3 eye_offset = cam.eye + (cam.u * ls.x) + (cam.v * ls.y); 
+
+    return createRay(eye_offset, normalize(ray_dir), time);
 }
 
 // MT_ material type
@@ -193,10 +209,12 @@ struct HitRecord
     Material material;
 };
 
-float schlick(float cosine, float refIdx)
+float schlick(float cosOi, float ior_1, float ior_2)
 {
     //INSERT YOUR CODE HERE
-    return 0.0f;
+    float r0 = pow(((ior_1 - ior_2) / (ior_1 + ior_2)), 2.0);
+	float Kr = r0 + (1.0 - r0) * pow(1.0 - cosOi, 5.0);
+    return Kr;
 }
 
 bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
@@ -204,49 +222,73 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     if(rec.material.type == MT_DIFFUSE)
     {
         //INSERT CODE HERE,
+        //vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
+
+        // scattering a secondary ray in a random direction within an hemisphere to accomplish the color bleeding effect
+        //vec3 rayDir = normalize(rec.normal + RandomUnitVector(gSeed));
+        //vec3 rayDir = normalize(rec.normal + hash3(gSeed));
+        
+        vec3 S = rec.pos + rec.normal + normalize(randomInUnitSphere(gSeed));
+        vec3 rayDir = normalize(S - rec.pos);
+
+        rScattered = createRay(rec.pos, rayDir, rIn.t);
+
         atten = rec.material.albedo * max(dot(rScattered.d, rec.normal), 0.0) / pi;
         return true;
     }
     if(rec.material.type == MT_METAL)
     {
-       //INSERT CODE HERE, consider fuzzy reflections
+        //INSERT CODE HERE, consider fuzzy reflections
+        vec3 rayDir = reflect(rIn.d, rec.normal);
+
+        // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
+        rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
+
+        rScattered = createRay(rec.pos, rayDir, rIn.t);
+
         atten = rec.material.albedo;
         return true;
     }
     if(rec.material.type == MT_DIALECTRIC)
     {
         atten = rec.material.albedo;
-        vec3 outwardNormal;
-        float niOverNt;
-        float cosine;
+        vec3 outNormal;
+        float n, cosine, kr;
+        bool inside = false;
 
-        if(dot(rIn.d, rec.normal) > 0.0) //hit inside
-        {
-            outwardNormal = -rec.normal;
-            niOverNt = rec.material.refIdx;
-            cosine = rec.material.refIdx * dot(rIn.d, rec.normal); 
+	    if (dot(rIn.d, rec.normal) > 0.0) {
+		    inside = true;
+		    outNormal = rec.normal * -1.0;
+            cosine = rec.material.refIdx * dot(rIn.d, rec.normal);
+            n = rec.material.refIdx / 1.0;
+            kr = schlick(cosine, rec.material.refIdx, 1.0);
+            
+	    } else{
+            inside = false;
+            outNormal = rec.normal;
+            cosine = -dot(rIn.d, rec.normal);
+            n = 1.0 / rec.material.refIdx;
+            kr = schlick(cosine, 1.0, rec.material.refIdx); 
         }
-        else  //hit from outside
-        {
-            outwardNormal = rec.normal;
-            niOverNt = 1.0 / rec.material.refIdx;
-            cosine = -dot(rIn.d, rec.normal); 
-        }
 
-        //Use probabilistic math to decide if scatter a reflected ray or a refracted ray
-
-        float reflectProb;
-
-        //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
-        //else reflectProb = 1.0;
-
-        if( hash1(gSeed) < reflectProb)  //Reflection
-        // rScattered = calculate reflected ray
-          // atten *= vec3(reflectProb); not necessary since we are only scattering reflectProb rays and not all reflected rays
-        
-        //else  //Refraction
-        // rScattered = calculate refracted ray
-           // atten *= vec3(1.0 - reflectProb); not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
+        if(hash1(gSeed) < kr){ // Reflection
+            vec3 rayDir = reflect(rIn.d, outNormal);
+            rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
+            rScattered = createRay(rec.pos, rayDir, rIn.t);
+        } else{ // Refraction
+            vec3 view = rIn.d * -1.0; 
+	        vec3 viewNormal = (outNormal * dot(view, outNormal));
+	        vec3 viewTangent = viewNormal - view;
+            float cosOi = length(viewNormal);
+            float sinOt = n * length(viewTangent);
+            float insqrt = 1.0 - pow(sinOt, 2.0);
+            if(insqrt >= 0.0){
+                float cosOt = sqrt(insqrt);
+                vec3 tDir = normalize((normalize(viewTangent) * sinOt + outNormal * normalize(-cosOt)));
+                vec3 intercept = rec.pos + rec.normal * epsilon;
+                rScattered = createRay(rec.pos, tDir, rIn.t);
+            }
+        }  
         return true;
     }
     return false;
@@ -276,7 +318,6 @@ Triangle createTriangle(vec3 v0, vec3 v1, vec3 v2)
 
 bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
 {
-
     //INSERT YOUR CODE HERE
     //calculate a valid t and normal
 
@@ -417,7 +458,6 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
     }
     else return false;
 }
-
 bool hit_movingSphere(MovingSphere s, Ray r, float tmin, float tmax, out HitRecord rec)
 {
      //INSERT YOUR CODE HERE
@@ -461,6 +501,8 @@ bool hit_movingSphere(MovingSphere s, Ray r, float tmin, float tmax, out HitReco
 }
 
  #iChannel0 "self"
+
+ bool USE_RUSSIAN_ROULETTE = false;
 
 bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
 {
@@ -512,9 +554,10 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         hit = true;
         rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
-
+    
     if(hit_sphere(
-        createSphere(vec3(0.0, 1.0, 0.0), -0.95),
+        //createSphere(vec3(0.0, 1.0, 0.0), -0.95),
+        createSphere(vec3(0.0, 1.0, 0.0), -0.45),
         r,
         tmin,
         rec.t,
@@ -523,6 +566,7 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         hit = true;
         rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
+    
    
     int numxy = 5;
     
@@ -624,7 +668,42 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
     float shininess;
     HitRecord dummy;
 
+    float diffuse, specular;
+
    //INSERT YOUR CODE HERE
+    vec3 L = (pl.pos - rec.pos);
+    if(dot(L, rec.normal) > 0.0){
+        Ray feeler = createRay(rec.pos + epsilon * rec.normal, L);
+        float len = length(pl.pos - rec.pos);
+
+        if(hit_world(feeler, 0.0, len, dummy)) // If true, then we're in shadow. Return color as 0
+        { 
+            return colorOut;
+        }
+
+        if(rec.material.type == MT_DIFFUSE)
+        {
+            specCol = vec3(0.1);
+            diffCol = rec.material.albedo;
+            shininess = 10.0;
+        }else if(rec.material.type == MT_METAL){
+            specCol = rec.material.albedo;
+            diffCol = vec3(0.0);
+            shininess = 190.0;
+        }else{ // Dialletric Materials
+            specCol = vec3(0.004);
+            diffCol = vec3(0.0);
+            shininess = 500.0;
+        }
+
+        L = normalize(L);
+        vec3 H = normalize((L - r.d));
+
+        diffCol = (pl.color * diffCol) * max(dot(rec.normal, L), 0.0); 
+        specCol = (pl.color * specCol) * pow(max(dot(H, rec.normal), 0.0), shininess); 
+
+        colorOut = diffCol + specCol;  
+    }
     
 	return colorOut; 
 }
@@ -641,19 +720,42 @@ vec3 rayColor(Ray r)
         if(hit_world(r, 0.001, 10000.0, rec))
         {
             //calculate direct lighting with 3 white point lights:
+            /* DIRECT LIGHTING */
             {
                 //createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0))
                 //createPointLight(vec3(8.0, 15.0, 3.0), vec3(1.0, 1.0, 1.0))
                 //createPointLight(vec3(1.0, 15.0, -9.0), vec3(1.0, 1.0, 1.0))
 
                 //for instance: col += directlighting(createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
+                col += directlighting(createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
+                col += directlighting(createPointLight(vec3(8.0, 15.0, 3.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
+                col += directlighting(createPointLight(vec3(1.0, 15.0, -9.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
             }
            
             //calculate secondary ray and update throughput
+            /* INDIRECT LIGHTING */
             Ray scatterRay;
             vec3 atten;
-            if(scatter(r, rec, atten, scatterRay))
-            {   //  insert your code here    }
+            if(scatter(r, rec, atten, scatterRay)) // Indirect Lighting
+            {   //  insert your code here    
+                // a secondary ray will be scattered which means that the initial ray will be simply 
+                // overwritten with the result of the ray produced by the scattering event before the next 
+                // loop iteration and the throughput of this new ray will be updated by multiplying it by the 
+                // object’s albedo.
+
+                r = scatterRay;
+                throughput *= atten; // TODO: SHOULD WE USE ATTEN HERE?
+                
+                // Russian Roulette - https://blog.demofox.org/2020/06/06/casual-shadertoy-path-tracing-2-image-improvement-and-glossy-reflections/
+                if(USE_RUSSIAN_ROULETTE){
+                    float p = max(throughput.x, max(throughput.y, throughput.z));
+                    if(hash1(gSeed) > p)
+                        break;
+
+                    throughput *= 1.0 / p;    
+                }
+                
+            }
         
         }
         else  //background
@@ -668,7 +770,8 @@ vec3 rayColor(Ray r)
 
 #define MAX_SAMPLES 10000.0
 
-void main(){
+void main()
+{
     gSeed = float(baseHash(floatBitsToUint(gl_FragCoord.xy))) / float(0xffffffffU) + iTime;
 
     vec2 mouse = iMouse.xy / iResolution.xy;
@@ -692,8 +795,8 @@ void main(){
         time0,
         time1);
 
-    //usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
-    
+//usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
+
     vec4 prev = texture(iChannel0, gl_FragCoord.xy / iResolution.xy);
     vec3 prevLinear = toLinear(prev.xyz);  
 
