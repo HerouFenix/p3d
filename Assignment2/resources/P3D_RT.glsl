@@ -7,8 +7,6 @@
  #include "./common.glsl"
  #iChannel0 "self"
 
- bool USE_RUSSIAN_ROULETTE = false;
-
 bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
 {
     bool hit = false;
@@ -57,21 +55,19 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         rec))
     {
         hit = true;
-        rec.material = createDialectricMaterial(vec3(1.0), 1.1);
+        rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
-    
-    if(hit_sphere(
+
+if(hit_sphere(
         createSphere(vec3(0.0, 1.0, 0.0), -0.95),
-        //createSphere(vec3(0.0, 1.0, 0.0), -0.45),
         r,
         tmin,
         rec.t,
         rec))
     {
         hit = true;
-        rec.material = createDialectricMaterial(vec3(1.0), 1.0);
+        rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
-    
    
     int numxy = 5;
     
@@ -173,51 +169,7 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
     float shininess;
     HitRecord dummy;
 
-    float diffuse, specular;
-
    //INSERT YOUR CODE HERE
-    vec3 L = (pl.pos - rec.pos);
-    if(dot(L, rec.normal) > 0.0){
-        Ray feeler = createRay(rec.pos + epsilon * rec.normal, L);
-        float len = length(pl.pos - rec.pos);
-
-        if(hit_world(feeler, 0.0, len, dummy)) // If true, then we're in shadow. Return color as 0
-        { 
-            return colorOut;
-        }
-
-        if(rec.material.type == MT_DIFFUSE)
-        {
-            specCol = vec3(0.1);
-            diffCol = rec.material.albedo;
-            shininess = 10.0;
-
-            diffuse = 1.0;
-            specular = 0.0;
-        }else if(rec.material.type == MT_METAL){
-            specCol = rec.material.albedo;
-            diffCol = vec3(0.0);
-            shininess = 100.0;
-
-            diffuse = 0.0;
-            specular = 1.0;
-        }else{ // Dialletric Materials
-            specCol = vec3(0.004);
-            diffCol = vec3(0.0);
-            shininess = 100.0;
-
-            diffuse = 0.0;
-            specular = 1.0;
-        }
-
-        L = normalize(L);
-        vec3 H = normalize((L - r.d));
-
-        diffCol = (pl.color * diffCol) * max(dot(rec.normal, L), 0.0); 
-        specCol = (pl.color * specCol) * pow(max(dot(H, rec.normal), 0.0), shininess); 
-
-        colorOut = diffCol * diffuse + specCol * specular;    
-    }
     
 	return colorOut; 
 }
@@ -234,42 +186,19 @@ vec3 rayColor(Ray r)
         if(hit_world(r, 0.001, 10000.0, rec))
         {
             //calculate direct lighting with 3 white point lights:
-            /* DIRECT LIGHTING */
             {
                 //createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0))
                 //createPointLight(vec3(8.0, 15.0, 3.0), vec3(1.0, 1.0, 1.0))
                 //createPointLight(vec3(1.0, 15.0, -9.0), vec3(1.0, 1.0, 1.0))
 
                 //for instance: col += directlighting(createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
-                col += directlighting(createPointLight(vec3(-10.0, 15.0, 0.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
-                col += directlighting(createPointLight(vec3(8.0, 15.0, 3.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
-                col += directlighting(createPointLight(vec3(1.0, 15.0, -9.0), vec3(1.0, 1.0, 1.0)), r, rec) * throughput;
             }
            
             //calculate secondary ray and update throughput
-            /* INDIRECT LIGHTING */
             Ray scatterRay;
             vec3 atten;
-            if(scatter(r, rec, atten, scatterRay)) // Indirect Lighting
-            {   //  insert your code here    
-                // a secondary ray will be scattered which means that the initial ray will be simply 
-                // overwritten with the result of the ray produced by the scattering event before the next 
-                // loop iteration and the throughput of this new ray will be updated by multiplying it by the 
-                // object’s albedo.
-
-                r = scatterRay;
-                throughput *= atten; // TODO: SHOULD WE USE ATTEN HERE?
-                
-                // Russian Roulette - https://blog.demofox.org/2020/06/06/casual-shadertoy-path-tracing-2-image-improvement-and-glossy-reflections/
-                if(USE_RUSSIAN_ROULETTE){
-                    float p = max(throughput.x, max(throughput.y, throughput.z));
-                    if(hash1(gSeed) > p)
-                        break;
-
-                    throughput *= 1.0 / p;    
-                }
-                
-            }
+            if(scatter(r, rec, atten, scatterRay))
+            {   //  insert your code here    }
         
         }
         else  //background
