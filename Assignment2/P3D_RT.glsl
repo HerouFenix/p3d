@@ -10,7 +10,7 @@
  #iUniform float fovy = 60.0 in { 0.0, 120.0 } // This will expose a slider to edit the value
 
 bool USE_RUSSIAN_ROULETTE = false;
-bool ORBIT_CAMERA = true;
+bool ORBIT_CAMERA = false;
 
 
 bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
@@ -182,7 +182,7 @@ vec3 directlighting(pointLight pl, Ray r, HitRecord rec){
    //INSERT YOUR CODE HERE
     vec3 L = (pl.pos - rec.pos);
     if(dot(L, rec.normal) > 0.0){
-        Ray feeler = createRay(rec.pos + epsilon * rec.normal, L);
+        Ray feeler = createRay(rec.pos + epsilon * rec.normal, normalize(L));
         float len = length(pl.pos - rec.pos);
 
         if(hit_world(feeler, 0.0, len, dummy)) // If true, then we're in shadow. Return color as 0

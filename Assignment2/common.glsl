@@ -397,12 +397,7 @@ bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
     vec3 edge1 = v1 - v0;
     vec3 edge2 = v2 - v0;
 
-    vec3 pVec = vec3(0, 0, 0);
-    pVec.x = (r.d.y * edge2.z) - (r.d.z * edge2.y);
-    pVec.y = (r.d.z * edge2.x) - (r.d.x * edge2.z);
-    pVec.z = (r.d.x * edge2.y) - (r.d.y * edge2.x);
-
-    normal = normalize(pVec);
+    vec3 pVec = cross(r.d, edge2);
 
     float det = dot(edge1, pVec);
 
@@ -419,10 +414,7 @@ bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
     if(u < 0.0f || u > 1.0f)
         return false;
 
-    vec3 qVec = vec3(0, 0, 0);
-    qVec.x = (tVec.y * edge1.z) - (tVec.z * edge1.y);
-    qVec.y = (tVec.z * edge1.x) - (tVec.x * edge1.z);
-    qVec.z = (tVec.x * edge1.y) - (tVec.y * edge1.x);
+    vec3 qVec = cross( tVec, edge1);
 
 	// Calculate V parameter and test bounds
     float v = inv_det * (dot(r.d, qVec));
@@ -432,14 +424,13 @@ bool hit_triangle(Triangle tg, Ray r, float tmin, float tmax, out HitRecord rec)
 	// Calculate t, scale parameters, ray intersects triangle
     t = inv_det * (dot(edge2, qVec));
 
-    if(t > 0.0000001f) {
-        if(t < tmax && t > tmin) {
-            rec.t = t;
-            rec.normal = normal;
-            rec.pos = pointOnRay(r, rec.t);
-            return true;
-        }
+    if(t < tmax && t > tmin) {
+        rec.t = t;
+        rec.normal = normalize(cross(edge1, edge2));
+        rec.pos = pointOnRay(r, rec.t);
+        return true;
     }
+    
     return false;
 }
 
