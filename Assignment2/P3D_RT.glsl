@@ -38,8 +38,8 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         rec))
     {
         hit = true;
-        rec.material = createDiffuseMaterial(vec3(0.2, 0.95, 0.1));
-        //rec.material = createDiffuseMaterial(vec3(0.4, 0.2, 0.1));
+        //rec.material = createDiffuseMaterial(vec3(0.2, 0.95, 0.1));
+        rec.material = createDiffuseMaterial(vec3(0.4, 0.2, 0.1));
     }
 
     if(hit_sphere(
@@ -327,6 +327,8 @@ void main()
     
     float aperture = 0.0;
     float distToFocus = 2.5;
+    //float distToFocus = 0.5;
+    //float aperture = 10.0;
     float time0 = 0.0;
     float time1 = 1.0;
     Camera cam = createCamera(
