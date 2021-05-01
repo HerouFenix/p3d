@@ -216,15 +216,16 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     {
         //INSERT CODE HERE,
         //vec3 rayPos = (rIn.o + rIn.d * rec.t) + rec.normal * epsilon;
+        vec3 hitPoint = rec.pos + rec.normal * epsilon;
 
         // scattering a secondary ray in a random direction within an hemisphere to accomplish the color bleeding effect
         //vec3 rayDir = normalize(rec.normal + RandomUnitVector(gSeed));
         //vec3 rayDir = normalize(rec.normal + hash3(gSeed));
         
-        vec3 S = rec.pos + rec.normal + normalize(randomInUnitSphere(gSeed));
-        vec3 rayDir = normalize(S - rec.pos);
+        vec3 S = hitPoint + rec.normal + normalize(randomInUnitSphere(gSeed));
+        vec3 rayDir = normalize(S - hitPoint);
 
-        rScattered = createRay(rec.pos, rayDir, rIn.t);
+        rScattered = createRay(hitPoint, rayDir, rIn.t);
 
         atten = rec.material.albedo * max(dot(rScattered.d, rec.normal), 0.0) / pi;
         return true;
@@ -232,12 +233,14 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     if(rec.material.type == MT_METAL)
     {
         //INSERT CODE HERE, consider fuzzy reflections
+        vec3 hitPoint = rec.pos + rec.normal * epsilon;
+
         vec3 rayDir = reflect(rIn.d, rec.normal);
 
         // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
         rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
 
-        rScattered = createRay(rec.pos, rayDir, rIn.t);
+        rScattered = createRay(hitPoint, rayDir, rIn.t);
 
         atten = rec.material.albedo;
         return true;
@@ -245,43 +248,89 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered)
     if(rec.material.type == MT_DIALECTRIC)
     {
         atten = rec.material.albedo;
-        vec3 outNormal;
-        float n, cosine, kr;
-        bool inside = false;
+        vec3 outwardNormal;
+        float niOverNt;
+        float cosine;
 
-	    if (dot(rIn.d, rec.normal) > 0.0) {
-		    inside = true;
-		    outNormal = rec.normal * -1.0;
-            cosine = rec.material.refIdx * dot(rIn.d, rec.normal);
-            n = rec.material.refIdx / 1.0;
-            kr = schlick(cosine, rec.material.refIdx, 1.0);
+        float etaI;
+        float etaT;
+
+        vec3 hitPoint;
+
+        int outside;
+
+        if(dot(rIn.d, rec.normal) > 0.0) //hit inside
+        {
+            outwardNormal = -rec.normal;
+            niOverNt = rec.material.refIdx;
+            cosine = rec.material.refIdx * dot(rIn.d, rec.normal); 
+
+            etaI = rec.material.refIdx;
+            etaT = 1.0; 
             
-	    } else{
-            inside = false;
-            outNormal = rec.normal;
+            outside = 0;
+        }
+        else  //hit from outside
+        {
+            outwardNormal = rec.normal;
+            niOverNt = 1.0 / rec.material.refIdx;
             cosine = -dot(rIn.d, rec.normal);
-            n = 1.0 / rec.material.refIdx;
-            kr = schlick(cosine, 1.0, rec.material.refIdx); 
+
+            etaI = 1.0;
+            etaT = rec.material.refIdx;  
+
+            outside = 1;
         }
 
-        if(hash1(gSeed) < kr){ // Reflection
-            vec3 rayDir = reflect(rIn.d, outNormal);
-            rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
-            rScattered = createRay(rec.pos, rayDir, rIn.t);
-        } else{ // Refraction
-            vec3 view = rIn.d * -1.0; 
-	        vec3 viewNormal = (outNormal * dot(view, outNormal));
-	        vec3 viewTangent = viewNormal - view;
-            float cosOi = length(viewNormal);
-            float sinOt = n * length(viewTangent);
-            float insqrt = 1.0 - pow(sinOt, 2.0);
-            if(insqrt >= 0.0){
-                float cosOt = sqrt(insqrt);
-                vec3 tDir = normalize((normalize(viewTangent) * sinOt + outNormal * normalize(-cosOt)));
-                vec3 intercept = rec.pos + rec.normal * epsilon;
-                rScattered = createRay(rec.pos, tDir, rIn.t);
+        //Use probabilistic math to decide if scatter a reflected ray or a refracted ray
+
+        float reflectProb;
+
+        //if no total reflection  reflectProb = schlick(cosine, rec.material.refIdx);  
+        //else reflectProb = 1.0;
+
+        float k = 1.0 - niOverNt * niOverNt * (1.0 - cosine * cosine);
+        if(k < 0.0){ // Total Reflection
+            reflectProb = 1.0;
+        }else{
+            reflectProb = schlick(cosine,etaI, etaT);
+        }
+
+        if( hash1(gSeed) < reflectProb){  //Reflection
+            // rScattered = calculate reflected ray
+
+            if(outside == 1){
+                hitPoint = rec.pos + rec.normal * epsilon;
+            }else{
+                hitPoint = rec.pos - rec.normal * epsilon;
             }
-        }  
+
+            vec3 rayDir = reflect(rIn.d, rec.normal);
+            //vec3 rayDir = normalize(rIn.d - 2.0 * dot(rIn.d, rec.normal) * rec.normal);
+
+            // Fuzzy Reflections
+            rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
+
+            rScattered = createRay(hitPoint, rayDir, rIn.t);
+
+            // atten *= vec3(reflectProb); not necessary since we are only scattering reflectProb rays and not all reflected rays
+        }else{  //Refraction
+            // rScattered = calculate refracted ray
+
+            if(outside == 1){
+                hitPoint = rec.pos - rec.normal * epsilon;
+            }else{
+                hitPoint = rec.pos + rec.normal * epsilon;
+            }
+            //hitPoint = rec.pos - outwardNormal * epsilon;
+            
+            vec3 rayDir = normalize(niOverNt * rIn.d + (niOverNt * cosine - sqrt(k)) * outwardNormal);
+           
+            rScattered = createRay(hitPoint, rayDir, rIn.t);
+
+            //atten *= vec3(1.0 - reflectProb); not necessary since we are only scattering 1-reflectProb rays and not all refracted rays
+        }
+
         return true;
     }
     return false;
@@ -423,76 +472,78 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
     float t = 0.0f;
 
     // https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
-	vec3 L = s.center - r.o;
+	vec3 L = r.o - s.center;
 	//float a = r.direction * r.direction;
-	float b = dot(L, r.d);
+	float b = dot(L, r.d); //dot product of the above vector and the ray's vector
 	float c = dot(L, L) - s.radius * s.radius;
 
-	if (c > 0.0f) {
-		if (b < 0.0f) {
-			return false;
-		}
-	}
-
+    // if origin of ray is outside the sphere and r is pointing away from it
+    if(c>0.0 && b >0.0){
+        return false;
+    }
+    
 	float discriminant = (b * b - c);
 
 	if (discriminant < 0.0f) {
 		return false;
 	}
 
-	if (c > 0.0f) {
-		t = b - sqrt(discriminant);
-	}
-	else {
-		t = b + sqrt(discriminant);
-	}
+    t = -b - sqrt(discriminant);
+    bool inside = false;
 
+    if(t < 0.0){
+        inside = true;
+        t = -b + sqrt(discriminant);
+    }
+	
     if(t < tmax && t > tmin) {
         rec.t = t;
         rec.pos = pointOnRay(r, rec.t);
-        rec.normal = normalize(rec.pos - s.center);
+        rec.normal = normalize(rec.pos - s.center) * (inside ? -1.0 : 1.0);
         return true;
     }
-    else return false;
+    
+    return false;
 }
 bool hit_movingSphere(MovingSphere s, Ray r, float tmin, float tmax, out HitRecord rec)
 {
      //INSERT YOUR CODE HERE
      //calculate a valid t and normal
 
-      float t = 0.0f;
+    float t = 0.0f;
 
-    // https://www.scratchapixel.com/code.php?id=10&origin=/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes
-	vec3 L = center(s, r.t) - r.o;
-	//float a = r.direction * r.direction;
-	float b = dot(L, r.d);
+    vec3 center = center(s, r.t);
+
+	vec3 L = r.o - center;
+	float b = dot(L, r.d); //dot product of the above vector and the ray's vector
 	float c = dot(L, L) - s.radius * s.radius;
 
-	if (c > 0.0f) {
-		if (b < 0.0f) {
-			return false;
-		}
-	}
-
+    // if origin of ray is outside the sphere and r is pointing away from it
+    if(c>0.0 && b >0.0){
+        return false;
+    }
+    
 	float discriminant = (b * b - c);
 
 	if (discriminant < 0.0f) {
 		return false;
 	}
 
-	if (c > 0.0f) {
-		t = b - sqrt(discriminant);
-	}
-	else {
-		t = b + sqrt(discriminant);
-	}
+    t = -b - sqrt(discriminant);
+    bool inside = false;
+
+    if(t < 0.0){
+        inside = true;
+        t = -b + sqrt(discriminant);
+    }
 	
     if(t < tmax && t > tmin) {
         rec.t = t;
         rec.pos = pointOnRay(r, rec.t);
-        rec.normal = normalize(rec.pos - center(s, r.t));
+        rec.normal = normalize(rec.pos - center) * (inside ? -1.0 : 1.0);
         return true;
     }
-    else return false;
+    
+    return false;
     
 }

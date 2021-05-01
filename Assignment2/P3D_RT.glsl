@@ -61,8 +61,9 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
     }
     
     if(hit_sphere(
-        //createSphere(vec3(0.0, 1.0, 0.0), -0.95),
-        createSphere(vec3(0.0, 1.0, 0.0), -0.45),
+        createSphere(vec3(0.0, 1.0, 0.0), -0.95),
+        //createSphere(vec3(0.0, 1.0, 0.0), -0.75),
+        //createSphere(vec3(0.0, 1.0, 0.0), -0.45),
         r,
         tmin,
         rec.t,
@@ -249,7 +250,7 @@ vec3 rayColor(Ray r)
                 // object’s albedo.
 
                 r = scatterRay;
-                throughput *= atten; // TODO: SHOULD WE USE ATTEN HERE?
+                throughput *= atten;
                 
                 // Russian Roulette - https://blog.demofox.org/2020/06/06/casual-shadertoy-path-tracing-2-image-improvement-and-glossy-reflections/
                 if(USE_RUSSIAN_ROULETTE){
