@@ -5,9 +5,13 @@
  */
 
  #include "./common.glsl"
+ #iKeyboard
  #iChannel0 "self"
+ #iUniform float fovy = 60.0 in { 0.0, 120.0 } // This will expose a slider to edit the value
 
- bool USE_RUSSIAN_ROULETTE = false;
+bool USE_RUSSIAN_ROULETTE = false;
+bool ORBIT_CAMERA = true;
+
 
 bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
 {
@@ -57,7 +61,7 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         rec))
     {
         hit = true;
-        rec.material = createDialectricMaterial(vec3(1.0), 1.1);
+        rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
     
     if(hit_sphere(
@@ -69,7 +73,7 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec)
         rec))
     {
         hit = true;
-        rec.material = createDialectricMaterial(vec3(1.0), 1.0);
+        rec.material = createDialectricMaterial(vec3(1.0), 1.5);
     }
     
    
@@ -258,7 +262,7 @@ vec3 rayColor(Ray r)
                 // object’s albedo.
 
                 r = scatterRay;
-                throughput *= atten; // TODO: SHOULD WE USE ATTEN HERE?
+                throughput *= atten; 
                 
                 // Russian Roulette - https://blog.demofox.org/2020/06/06/casual-shadertoy-path-tracing-2-image-improvement-and-glossy-reflections/
                 if(USE_RUSSIAN_ROULETTE){
@@ -289,11 +293,38 @@ void main()
     gSeed = float(baseHash(floatBitsToUint(gl_FragCoord.xy))) / float(0xffffffffU) + iTime;
 
     vec2 mouse = iMouse.xy / iResolution.xy;
-    mouse.x = mouse.x * 2.0 - 1.0;
 
-    vec3 camPos = vec3(mouse.x * 10.0, mouse.y * 5.0, 8.0);
-    vec3 camTarget = vec3(0.0, 0.0, -1.0);
-    float fovy = 60.0;
+    vec3 camPos;
+    vec3 camTarget = vec3(0.0, 0.0, -1.0); // Camera At
+
+    float camDist = 8.0; 
+
+
+    // ORBIT CAMERA (CGJ PTSD)//
+    if(!ORBIT_CAMERA){
+        mouse.x = mouse.x * 2.0 - 1.0;
+        camPos = vec3(mouse.x * 10.0, mouse.y * 5.0, camDist); // Z -> Camera distance
+    }else{
+        float minAngle = 0.01;
+        float maxAngle = pi - 0.01;
+        float sensitivity = 16.0;
+
+        float angleX = -mouse.x * sensitivity; 
+        float angleY = mix(minAngle, maxAngle, mouse.y);
+
+        camPos = vec3(
+            sin(angleX) * sin(angleY) * camDist,
+            -cos(angleY) * camDist,
+            cos(angleX) * sin(angleY) * camDist
+        );
+
+        camPos += camTarget;
+    }
+
+    //float fovy = 60.0;
+
+    float prevFov = fovy;
+    
     float aperture = 0.0;
     float distToFocus = 2.5;
     float time0 = 0.0;
@@ -309,7 +340,7 @@ void main()
         time0,
         time1);
 
-//usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
+    //usa-se o 4 canal de cor para guardar o numero de samples e não o iFrame pois quando se mexe o rato faz-se reset
 
     vec4 prev = texture(iChannel0, gl_FragCoord.xy / iResolution.xy);
     vec3 prevLinear = toLinear(prev.xyz);  
@@ -318,7 +349,7 @@ void main()
     //vec2 ps = gl_FragCoord.xy;
     vec3 color = rayColor(getRay(cam, ps));
 
-    if(iMouseButton.x != 0.0 || iMouseButton.y != 0.0)
+    if(iMouseButton.x != 0.0 || iMouseButton.y != 0.0 || fovy != prevFov)
     {
         gl_FragColor = vec4(toGamma(color), 1.0);  //samples number reset = 1
         return;

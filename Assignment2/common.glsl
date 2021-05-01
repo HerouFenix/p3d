@@ -105,16 +105,16 @@ Camera createCamera(vec3 eye, vec3 at, vec3 worldUp, float fovy, float aspect, f
         cam.focusDist = 1.0; //pinhole camera then focus in on vis plane
     else
         cam.focusDist = focusDist;
-    vec3 w = eye - at;
+    vec3 w = eye - at; 
     cam.planeDist = length(w);
     cam.height = 2.0 * cam.planeDist * tan(fovy * pi / 180.0 * 0.5);
     cam.width = aspect * cam.height;
 
     cam.lensRadius = aperture * 0.5 * cam.width / iResolution.x;  //aperture ratio * pixel size; (1 pixel=lente raio 0.5)
     cam.eye = eye;
-    cam.n = normalize(w);
-    cam.u = normalize(cross(worldUp, cam.n));
-    cam.v = cross(cam.n, cam.u);
+    cam.n = normalize(w); // Camera Forward
+    cam.u = normalize(cross(worldUp, cam.n)); // Camera Right
+    cam.v = cross(cam.n, cam.u); // Camera Up
     cam.time0 = time0;
     cam.time1 = time1;
     return cam;
@@ -207,7 +207,8 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered) {
     }
     if(rec.material.type == MT_METAL) {
         //INSERT CODE HERE, consider fuzzy reflections
-        vec3 rayDir = reflect(rIn.d, rec.normal);
+        //vec3 rayDir = reflect(rIn.d, rec.normal);
+        vec3 rayDir = normalize(rIn.d - 2.0 * dot(rIn.d, rec.normal) * rec.normal);
 
         // Fuzzy Reflections -  (rDir + (sample_unit_sphere() * ROUGHNESS)).normalize()
         rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
@@ -308,7 +309,7 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered) {
         }
 
         return true;
-
+        
         /*
         atten = rec.material.albedo;
         vec3 outNormal;
@@ -348,8 +349,8 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered) {
                 rScattered = createRay(rec.pos, tDir, rIn.t);
             }
         }  
-        */
         return true;
+        */
     }
     return false;
 }
@@ -504,17 +505,18 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
 	}
 
     t = -b - sqrt(discriminant);
-    //bool inside = false;
+    bool inside = false;
 
     if(t < 0.0){
-        //inside = true;
+        inside = true;
         t = -b + sqrt(discriminant);
     }
 	
     if(t < tmax && t > tmin) {
         rec.t = t;
         rec.pos = pointOnRay(r, rec.t);
-        rec.normal = normalize(rec.pos - s.center);// * (inside ? -1.0 : 1.0);
+        rec.normal = normalize(rec.pos - s.center) * (s.radius < 0.0 ? -1.0 : 1.0);
+        //rec.normal = inside ? rec.normal * -1.0 : rec.normal;
         return true;
     }
     
@@ -555,7 +557,8 @@ bool hit_movingSphere(MovingSphere s, Ray r, float tmin, float tmax, out HitReco
     if(t < tmax && t > tmin) {
         rec.t = t;
         rec.pos = pointOnRay(r, rec.t);
-        rec.normal = normalize(rec.pos - center);// * (inside ? -1.0 : 1.0);
+        rec.normal = normalize(rec.pos - center) * (s.radius < 0.0 ? -1.0 : 1.0);
+        //rec.normal = inside ? rec.normal * -1.0 : rec.normal;
         return true;
     }
     
