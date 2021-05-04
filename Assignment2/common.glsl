@@ -314,47 +314,6 @@ bool scatter(Ray rIn, HitRecord rec, out vec3 atten, out Ray rScattered) {
 
         return true;
         
-        /*
-        atten = rec.material.albedo;
-        vec3 outNormal;
-        float n, cosine, kr;
-        bool inside = false;
-
-	    if (dot(rIn.d, rec.normal) > 0.0) {
-		    inside = true;
-		    outNormal = rec.normal * -1.0;
-            cosine = rec.material.refIdx * dot(rIn.d, rec.normal);
-            n = rec.material.refIdx / 1.0;
-            kr = schlick(cosine, rec.material.refIdx, 1.0);
-            
-	    } else{
-            inside = false;
-            outNormal = rec.normal;
-            cosine = -dot(rIn.d, rec.normal);
-            n = 1.0 / rec.material.refIdx;
-            kr = schlick(cosine, 1.0, rec.material.refIdx); 
-        }
-
-        if(hash1(gSeed) < kr){ // Reflection
-            vec3 rayDir = reflect(rIn.d, outNormal);
-            rayDir = normalize(rayDir + (randomInUnitSphere(gSeed) * rec.material.roughness));
-            rScattered = createRay(rec.pos, rayDir, rIn.t);
-        } else{ // Refraction
-            vec3 view = rIn.d * -1.0; 
-	        vec3 viewNormal = (outNormal * dot(view, outNormal));
-	        vec3 viewTangent = viewNormal - view;
-            float cosOi = length(viewNormal);
-            float sinOt = n * length(viewTangent);
-            float insqrt = 1.0 - pow(sinOt, 2.0);
-            if(insqrt >= 0.0){
-                float cosOt = sqrt(insqrt);
-                vec3 tDir = normalize((normalize(viewTangent) * sinOt + outNormal * normalize(-cosOt)));
-                vec3 intercept = rec.pos + rec.normal * epsilon;
-                rScattered = createRay(rec.pos, tDir, rIn.t);
-            }
-        }  
-        return true;
-        */
     }
     return false;
 }
@@ -511,8 +470,9 @@ bool hit_sphere(Sphere s, Ray r, float tmin, float tmax, out HitRecord rec)
         rec.t = t;
         rec.pos = pointOnRay(r, rec.t);
         //rec.normal = normalize(rec.pos - s.center) * (s.radius < 0.0 ? -1.0 : 1.0);
-        rec.normal = normalize((rec.pos - s.center) / s.radius);
+        //rec.normal = normalize((rec.pos - s.center) / s.radius);
         //rec.normal = inside ? rec.normal * -1.0 : rec.normal;
+        rec.normal = s.radius >= 0.0 ? normalize(rec.pos - s.center) : normalize(s.center - rec.pos);
         return true;
     }
     
@@ -554,8 +514,9 @@ bool hit_movingSphere(MovingSphere s, Ray r, float tmin, float tmax, out HitReco
         rec.t = t;
         rec.pos = pointOnRay(r, rec.t);
         //rec.normal = normalize(rec.pos - center) * (s.radius < 0.0 ? -1.0 : 1.0);
-        rec.normal = normalize((rec.pos - center) / s.radius);
+        //rec.normal = normalize((rec.pos - center) / s.radius);
         //rec.normal = inside ? rec.normal * -1.0 : rec.normal;
+        rec.normal = s.radius >= 0.0 ? normalize(rec.pos - center) : normalize(center - rec.pos);
         return true;
     }
     

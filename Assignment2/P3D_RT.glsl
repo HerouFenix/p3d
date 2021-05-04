@@ -8,8 +8,14 @@
 #iKeyboard
 #iChannel0 "self"
 
-bool USE_RUSSIAN_ROULETTE = false;
+bool USE_RUSSIAN_ROULETTE = true;
 bool ORBIT_CAMERA = false;
+
+bool SHOWCASE_DOF = false;
+bool SHOWCASE_FUZZYREFL = false;
+bool SHOWCASE_FUZZYREFR = false;
+bool NO_NEGATIVE_SPHERE = false;
+
 #iUniform float fovy = 60.0 in { 0.0, 120.0 } // This will expose a slider to edit the value ; It would've been better to be able to store the current fov in a channel, but our 4th channel is already occupied with the frame counter, and i can't figure out how to create a texture on a new channel
 
 bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec) {
@@ -36,25 +42,36 @@ bool hit_world(Ray r, float tmin, float tmax, out HitRecord rec) {
     // Right Ball
     if(hit_sphere(createSphere(vec3(4.0, 1.0, 0.0), 1.0), r, tmin, rec.t, rec)) {
         hit = true;
-        rec.material = createMetalMaterial(vec3(0.7, 0.6, 0.5), 0.0);
-        //rec.material = createMetalMaterial(vec3(0.7, 0.6, 0.5), 0.2); // Fuzzy Reflection
+        if(!SHOWCASE_FUZZYREFL){
+            rec.material = createMetalMaterial(vec3(0.7, 0.6, 0.5), 0.0);
+        }else{
+            rec.material = createMetalMaterial(vec3(0.7, 0.6, 0.5), 0.2); // Fuzzy Reflection
+        }
     }
 
     // Center Ball (out)
     if(hit_sphere(createSphere(vec3(0.0, 1.0, 0.0), 1.0), r, tmin, rec.t, rec)) {
         hit = true;
-        rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.0); 
-        //rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.2); // Fuzzy Refraction
+        if(!SHOWCASE_FUZZYREFR){
+            rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.0); 
+        }else{
+            rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.2); // Fuzzy Refraction
+        }
     }
 
     // Center Ball (in)
-    if(hit_sphere(
-        createSphere(vec3(0.0, 1.0, 0.0), -0.95),
-        //createSphere(vec3(0.0, 1.0, 0.0), -0.45),
-    r, tmin, rec.t, rec)) {
-        hit = true;
-        rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.0);
-        //rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.2); // Fuzzy Refraction
+    if(!NO_NEGATIVE_SPHERE){
+        if(hit_sphere(
+            createSphere(vec3(0.0, 1.0, 0.0), -0.95),
+            //createSphere(vec3(0.0, 1.0, 0.0), -0.45),
+        r, tmin, rec.t, rec)) {
+            hit = true;
+            if(!SHOWCASE_FUZZYREFR){
+                rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.0);
+            }else{
+                rec.material = createDialectricMaterial(vec3(1.0), 1.5, 0.0, 0.2); // Fuzzy Refraction
+            }
+        }     
     }
 
     int numxy = 5;
@@ -242,6 +259,10 @@ void main() {
         { // Default position of camera
             camPos = vec3(0.0f, 0.0f, -camDist);
         }else{
+            // calculate 2d coordinates of the ray target on the imaginary pixel plane.
+            // -1 to +1 on each axis.
+            mouse.x = mouse.x * 2.0 - 1.0;
+
             float minAngle = 0.01;
             float maxAngle = pi - 0.01;
             float sensitivity = 5.0;
@@ -257,14 +278,18 @@ void main() {
 
     //float fovy = 60.0;
 
-    /*Default (no dof)*/
-    float aperture = 0.0;
-    float distToFocus = 2.5;
-
-    /*Alternative (high dof, close objects in focus)*/
-    //float distToFocus = 0.5;
-    //float aperture = 10.0;
-
+    float aperture;
+    float distToFocus;
+    if(!SHOWCASE_DOF){
+        /*Default (no dof)*/
+        aperture = 0.0;
+        distToFocus = 2.5;
+    }else{
+        /*Alternative (high dof, close objects in focus)*/
+        distToFocus = 0.5;
+        aperture = 10.0;
+    }
+    
     float time0 = 0.0;
     float time1 = 1.0;
     Camera cam = createCamera(camPos, camTarget, vec3(0.0, 1.0, 0.0),    // world up vector
