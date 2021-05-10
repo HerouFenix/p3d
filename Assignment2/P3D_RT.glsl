@@ -8,8 +8,8 @@
 #iKeyboard
 #iChannel0 "self"
 
-bool USE_RUSSIAN_ROULETTE = true;
-bool ORBIT_CAMERA = false;
+bool USE_RUSSIAN_ROULETTE = false;
+bool ORBIT_CAMERA = true;
 
 bool SHOWCASE_DOF = false;
 bool SHOWCASE_FUZZYREFL = false;
