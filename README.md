@@ -3,7 +3,7 @@
 ## Authors
 
 -   **Diogo Silva (98776)** - [HerouFenix](https://github.com/HerouFenix)
--   **Daniel Gonçalves (#####)** - 
+-   **Daniel Gonçalves (#####)** - [4nd3l1](https://github.com/4nd3l1)
 -   **Henrique Gaspar (#####)** - 
 
 ## License
